@@ -30,11 +30,9 @@ public class search_node implements NodeAction {
         SseEventUtil.sendNodeStatus(state, "search_node", "start", "开始调用搜索能力");
 
         String query = state.value("search_intent", "");
+        query = query == null ? "" : query.trim();
         if (query == null || query.isBlank()) {
-            query = state.value("repeat_question", state.value("original_question", ""));
-        }
-        if (query == null || query.isBlank()) {
-            SseEventUtil.sendNodeStatus(state, "search_node", "finish", "搜索问题为空，跳过联网检索");
+            SseEventUtil.sendNodeStatus(state, "search_node", "finish", "search_intent 为空，跳过联网检索");
             return Map.of("search_context", "", "search_matches", List.of());
         }
 

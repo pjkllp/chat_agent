@@ -32,9 +32,10 @@ public class retrieve_node implements NodeAction {
         long startMs = System.currentTimeMillis();
         SseEventUtil.sendNodeStatus(state, "retrieve_node", "start", "开始召回知识库内容");
 
-        String query = state.value("repeat_question", state.value("original_question", ""));
-        if (query == null || query.isBlank()) {
-            SseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "检索问题为空，跳过召回");
+        String query = state.value("retrieve_intent", "");
+        query = query == null ? "" : query.trim();
+        if (query.isBlank()) {
+            SseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "retrieve_intent 为空，跳过召回");
             return Map.of("retrieve_context", "", "retrieve_matches", List.of());
         }
 

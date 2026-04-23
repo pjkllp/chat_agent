@@ -2,17 +2,24 @@ package org.example.travel_agent.Node;
 
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.Exceptions.RepeatToManyException;
 import org.example.travel_agent.common.SseEventUtil;
-import org.example.travel_agent.dto.IntentDTO;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class intent_identify_node implements NodeAction {
@@ -27,32 +34,88 @@ public class intent_identify_node implements NodeAction {
     public Map<String, Object> apply(OverAllState state) throws Exception {
         SseEventUtil.sendNodeStatus(state, "intent_identify_node", "start", "开始识别用户意图");
 
+        ClassPathResource classPathResource = new ClassPathResource("./prompt/intent_identify_node.st");
+        String repeatQuestion = state.value("rewrite_question", state.value("original_question", ""));
+        Map<String, Object> result = new HashMap<>();
+        result.put("search_intent", "");
+        result.put("retrieve_intent", "");
+        result.put("tool_intent", "");
 
-        ClassPathResource classPathResource = new ClassPathResource("prompt/intent_identify_node.st");
+        boolean parsed = false;
+        int count = 0;
+        while (!parsed && count < MAX_REPEAT_COUNT) {
+            try {
+                String content = deepThinkChatClient.prompt()
+                        .advisors(memoryAdvisor)
+                        .system(classPathResource)
+                        .user(repeatQuestion)
+                        .call()
+                        .content();
+                content = content == null ? "" : content.trim();
+                if (content.isBlank()) {
+                    count++;
+                    continue;
+                }
 
-        String repeatQuestion = state.value("repeat_question", "");
+                JSONObject jsonObject = JSON.parseObject(content);
+                if (jsonObject == null) {
+                    count++;
+                    continue;
+                }
 
-        IntentDTO intentDTO = null;
-        int count=0;
-
-        while (intentDTO==null&&count<MAX_REPEAT_COUNT){
-            intentDTO = deepThinkChatClient.prompt()
-                    .advisors(memoryAdvisor)
-                    .system(classPathResource)
-                    .user(repeatQuestion)
-                    .call().entity(IntentDTO.class);
-            if (count>=3){
-                throw new RepeatToManyException("模型重试生成次数过多");
+                Object intentsObj = jsonObject.get("intents");
+                List<Map<String, String>> intentPairs = normalizeIntentPairs(intentsObj);
+                for (Map<String, String> pair : intentPairs) {
+                    for (Map.Entry<String, String> entry : pair.entrySet()) {
+                        String intentKey = entry.getKey();
+                        String intentValue = entry.getValue();
+                        if (intentKey == null || intentKey.isBlank()) {
+                            continue;
+                        }
+                        if (!result.containsKey(intentKey)) {
+                            continue;
+                        }
+                        result.put(intentKey, intentValue == null ? "" : intentValue.trim());
+                    }
+                }
+                parsed = true;
+            } catch (Exception parseException) {
+                log.warn("意图解析失败，准备重试: {}", parseException.getMessage());
+                count++;
             }
-            count++;
+        }
+        if (!parsed) {
+            throw new RepeatToManyException("模型重试生成次数过多，未生成合法JSON");
         }
 
         SseEventUtil.sendNodeStatus(state, "intent_identify_node", "finish", "意图识别完成");
+        return result;
+    }
 
-        return Map.of(
-                "search_intent",intentDTO.getSearchIntent(),
-                "retrieve_intent",intentDTO.getRetrieveIntent(),
-                "tool_intent",intentDTO.getToolIntent()
-        );
+    private List<Map<String, String>> normalizeIntentPairs(Object intentsObj) {
+        List<Map<String, String>> pairs = new ArrayList<>();
+        if (intentsObj instanceof JSONObject intentsJsonObject) {
+            Map<String, String> item = new HashMap<>();
+            for (String key : intentsJsonObject.keySet()) {
+                item.put(key, intentsJsonObject.getString(key));
+            }
+            pairs.add(item);
+            return pairs;
+        }
+        if (intentsObj instanceof JSONArray intentsArray) {
+            for (int i = 0; i < intentsArray.size(); i++) {
+                Object itemObj = intentsArray.get(i);
+                if (itemObj instanceof JSONObject itemJson) {
+                    Map<String, String> item = new HashMap<>();
+                    for (String key : itemJson.keySet()) {
+                        item.put(key, itemJson.getString(key));
+                    }
+                    if (!item.isEmpty()) {
+                        pairs.add(item);
+                    }
+                }
+            }
+        }
+        return pairs;
     }
 }

@@ -35,7 +35,7 @@ public class answer_node implements NodeAction {
 
         String summaryPrompt = state.value("summary_prompt", "");
         if (summaryPrompt == null || summaryPrompt.isBlank()) {
-            summaryPrompt = state.value("repeat_question", state.value("original_question", ""));
+            summaryPrompt = state.value("rewrite_question", state.value("original_question", ""));
         }
 
         ClassPathResource classPathResource = new ClassPathResource("prompt/answer.st");

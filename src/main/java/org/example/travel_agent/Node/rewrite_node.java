@@ -25,7 +25,7 @@ public class rewrite_node implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
 
-        ClassPathResource classPathResource = new ClassPathResource("prompt/repeat.st");
+        ClassPathResource classPathResource = new ClassPathResource("prompt/rewrite.st");
 
         String originalQuestion = state.value("original_question", "");
 

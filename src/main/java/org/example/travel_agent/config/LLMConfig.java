@@ -82,15 +82,17 @@ public class LLMConfig {
                 //条件路由
                 .addParallelConditionalEdges("intent_identify_node", AsyncMultiCommandAction.node_async(
                         (state, config) ->{
-                            Boolean searchIntent = state.value("search_intent", Boolean.class).orElse(false);
-                            Boolean retrieveIntent = state.value("retrieve_intent", Boolean.class).orElse(false);
+                            String searchIntent = state.value("search_intent", "");
+                            String retrieveIntent = state.value("retrieve_intent", "");
                             ArrayList<String> routes=new ArrayList<>();
+                            boolean hasSearchIntent = searchIntent != null && !searchIntent.isBlank();
+                            boolean hasRetrieveIntent = retrieveIntent != null && !retrieveIntent.isBlank();
                             //判断有哪些意图
-                            if (searchIntent||retrieveIntent){
-                                if(searchIntent){
+                            if (hasSearchIntent || hasRetrieveIntent){
+                                if(hasSearchIntent){
                                     routes.add("search_intent");
                                 }
-                                if (retrieveIntent){
+                                if (hasRetrieveIntent){
                                     routes.add("retrieve_intent");
                                 }
                             }else {

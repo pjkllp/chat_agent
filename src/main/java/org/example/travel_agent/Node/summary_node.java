@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.travel_agent.common.SseEventUtil;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
+import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -23,21 +24,23 @@ public class summary_node implements NodeAction {
     public Map<String, Object> apply(OverAllState state) throws Exception {
         SseEventUtil.sendNodeStatus(state, "summary_node", "start", "开始汇总工具结果");
 
-        String repeatQuestion = state.value("repeat_question", "");
+        String rewriteQuestion = state.value("rewrite_question", "");
         String searchContext = state.value("search_context", "");
         String retrieveContext = state.value("retrieve_context", "");
+        String searchKeyword = state.value("search_intent", "");
+        String retrieveKeyword = state.value("retrieve_intent", "");
 
         ClassPathResource classPathResource = new ClassPathResource("prompt/summary.st");
-        String summaryInput = """
-                用户问题:
-                %s
 
-                联网检索结果:
-                %s
+        PromptTemplate promptTemplate = new PromptTemplate(classPathResource);
 
-                知识库召回结果:
-                %s
-                """.formatted(repeatQuestion, searchContext, retrieveContext);
+        String summaryInput = promptTemplate.render(Map.of(
+                "question", rewriteQuestion == null ? "" : rewriteQuestion,
+                "search_keyword", searchKeyword == null ? "" : searchKeyword,
+                "search_context", searchContext == null ? "" : searchContext,
+                "retrieve_keyword", retrieveKeyword == null ? "" : retrieveKeyword,
+                "retrieve_context", retrieveContext == null ? "" : retrieveContext
+        ));
 
         ChatClient.CallResponseSpec call = deepThinkChatClient.prompt()
                 .advisors(memoryAdvisor)

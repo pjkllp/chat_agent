@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: ReactAgent
+  datasource:
+    username: postgres
+    password: 123456
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:15432/ReactAgent?currentSchema=public
+  ai:
+    dashscope:
+      api-key: ${BAILIAN_API_KEY:}
+      chat:
+        options:
+          model: qwen-plus
+          temperature: 0.7
+          top-p: 0.9
+
+app:
+  retrieval:
+    top-k: 3
+  search:
+    top-k: 5
+    timeout-ms: 8000
+  fetch:
+    timeout-ms: 12000
+    max-content-length: 3000
+    top-k: 3
+

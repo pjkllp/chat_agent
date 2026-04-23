@@ -15,12 +15,12 @@ public class RedisStore implements Store {
     public final StringRedisTemplate stringRedisTemplate;
 
     @Override
-    public void append(List<AiChatMemoryEntity> messages){
+    public void append(List<AiChatMemoryEntity> messages,String conversationId){
 
     }
 
     @Override
-    public List<AiChatMemoryEntity> load(){
+    public List<AiChatMemoryEntity> load(String conversationId){
 
 
         return null;

@@ -7,16 +7,14 @@ import com.alibaba.cloud.ai.graph.action.*;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.state.strategy.ReplaceStrategy;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.prompt.ChatOptions;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 
 import java.util.ArrayList;
 import java.util.Map;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class LLMConfig {
@@ -36,25 +34,13 @@ public class LLMConfig {
     private final NodeAction answer_node;
 
     @Bean
-    public ChatClient repeatClient(ChatModel chatModel){
-        ClassPathResource classPathResource = new ClassPathResource("prompt/system.st");
-        return ChatClient.builder(chatModel)
-                .defaultSystem(classPathResource)
-                .defaultOptions(
-                        ChatOptions.builder()
-                                .temperature(0.1)
-                                .build()
-                ).build();
-    }
-
-    @Bean
     public CompiledGraph deepThinkGraph() throws GraphStateException {
         KeyStrategyFactory strategyFactory=()->{
             return Map.of("input",new ReplaceStrategy());
         };
         StateGraph deepThinkGraph = new StateGraph("deepThinkGraph",strategyFactory);
 
-        deepThinkGraph.addNode("repeat_node", AsyncNodeAction.node_async(
+        deepThinkGraph.addNode("rewrite_node", AsyncNodeAction.node_async(
                 rewrite_node
         )).addNode("intent_identify_node",AsyncNodeAction.node_async(
                 intent_identify_node
@@ -69,8 +55,8 @@ public class LLMConfig {
         )).addNode("answer_node",AsyncNodeAction.node_async(
                 answer_node
                 //先进入重写节点根据历史对话重写内容
-        )).addEdge(StateGraph.START,"repeat_node")
-                .addEdge("repeat_node","intent_identify_node")
+        )).addEdge(StateGraph.START,"rewrite_node")
+                .addEdge("rewrite_node","intent_identify_node")
                 //工具节点归并
                 .addEdge("search_node","fetch_node")
 
@@ -96,6 +82,7 @@ public class LLMConfig {
                                     routes.add("retrieve_intent");
                                 }
                             }else {
+                                log.info("没有使用工具的意图，大模型直接回答");
                                 //没有意图直接进入answer_node直接回答
                                 routes.add("none");
                             }

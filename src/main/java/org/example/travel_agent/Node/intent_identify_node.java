@@ -8,9 +8,9 @@ import com.alibaba.fastjson2.JSONObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.Exceptions.RepeatToManyException;
+import org.example.travel_agent.advisor.ContextMemoryAdvisor;
 import org.example.travel_agent.common.SseEventUtil;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -26,16 +26,17 @@ public class intent_identify_node implements NodeAction {
 
     private final ChatClient deepThinkChatClient;
 
-    private final Advisor memoryAdvisor;
+    private final ContextMemoryAdvisor memoryAdvisor;
+    private final SseEventUtil sseEventUtil;
 
     private final int MAX_REPEAT_COUNT=3;
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
-        SseEventUtil.sendNodeStatus(state, "intent_identify_node", "start", "开始识别用户意图");
+        sseEventUtil.sendNodeStatus(state, "intent_identify_node", "start", "开始识别用户意图");
 
         ClassPathResource classPathResource = new ClassPathResource("./prompt/intent_identify_node.st");
-        String repeatQuestion = state.value("rewrite_question", state.value("original_question", ""));
+        String rewriteQuestion = state.value("rewrite_question", state.value("original_question", ""));
         Map<String, Object> result = new HashMap<>();
         result.put("search_intent", "");
         result.put("retrieve_intent", "");
@@ -51,7 +52,7 @@ public class intent_identify_node implements NodeAction {
                         .advisors(memoryAdvisor)
                         .advisors(advisorSpec -> advisorSpec.param("conversationId",conversationId))
                         .system(classPathResource)
-                        .user(repeatQuestion)
+                        .user(rewriteQuestion)
                         .call()
                         .content();
                 content = content == null ? "" : content.trim();
@@ -91,7 +92,7 @@ public class intent_identify_node implements NodeAction {
             throw new RepeatToManyException("模型重试生成次数过多，未生成合法JSON");
         }
 
-        SseEventUtil.sendNodeStatus(state, "intent_identify_node", "finish", "意图识别完成");
+        sseEventUtil.sendNodeStatus(state, "intent_identify_node", "finish", "意图识别完成");
         return result;
     }
 

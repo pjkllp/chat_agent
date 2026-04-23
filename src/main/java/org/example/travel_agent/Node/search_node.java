@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 public class search_node implements NodeAction {
 
     private final BaiduSearchService baiduSearchService;
+    private final SseEventUtil sseEventUtil;
 
     @Value("${app.search.top-k:5}")
     private int topK;
@@ -27,12 +28,12 @@ public class search_node implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
         long startMs = System.currentTimeMillis();
-        SseEventUtil.sendNodeStatus(state, "search_node", "start", "开始调用搜索能力");
+        sseEventUtil.sendNodeStatus(state, "search_node", "start", "开始调用搜索能力");
 
         String query = state.value("search_intent", "");
         query = query == null ? "" : query.trim();
         if (query == null || query.isBlank()) {
-            SseEventUtil.sendNodeStatus(state, "search_node", "finish", "search_intent 为空，跳过联网检索");
+            sseEventUtil.sendNodeStatus(state, "search_node", "finish", "search_intent 为空，跳过联网检索");
             return Map.of("search_context", "", "search_matches", List.of());
         }
 
@@ -50,7 +51,7 @@ public class search_node implements NodeAction {
                 .collect(Collectors.joining("\n\n"));
 
         long costMs = System.currentTimeMillis() - startMs;
-        SseEventUtil.sendNodeStatus(
+        sseEventUtil.sendNodeStatus(
                 state,
                 "search_node",
                 "finish",

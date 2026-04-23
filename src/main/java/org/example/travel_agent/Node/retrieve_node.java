@@ -23,6 +23,7 @@ public class retrieve_node implements NodeAction {
     private final EmbeddingModel embeddingModel;
 
     private final KnowledgeVectorMapper knowledgeVectorMapper;
+    private final SseEventUtil sseEventUtil;
 
     @Value("${app.retrieval.top-k:3}")
     private int topK;
@@ -30,18 +31,18 @@ public class retrieve_node implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
         long startMs = System.currentTimeMillis();
-        SseEventUtil.sendNodeStatus(state, "retrieve_node", "start", "开始召回知识库内容");
+        sseEventUtil.sendNodeStatus(state, "retrieve_node", "start", "开始召回知识库内容");
 
         String query = state.value("retrieve_intent", "");
         query = query == null ? "" : query.trim();
         if (query.isBlank()) {
-            SseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "retrieve_intent 为空，跳过召回");
+            sseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "retrieve_intent 为空，跳过召回");
             return Map.of("retrieve_context", "", "retrieve_matches", List.of());
         }
 
         float[] queryEmbedding = embeddingModel.embed(query);
         if (queryEmbedding == null || queryEmbedding.length == 0) {
-            SseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "向量生成失败，跳过召回");
+            sseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "向量生成失败，跳过召回");
             return Map.of("retrieve_context", "", "retrieve_matches", List.of());
         }
 
@@ -64,7 +65,7 @@ public class retrieve_node implements NodeAction {
         String retrieveContext = fragments.stream().collect(Collectors.joining("\n\n"));
 
         long costMs = System.currentTimeMillis() - startMs;
-        SseEventUtil.sendNodeStatus(
+        sseEventUtil.sendNodeStatus(
                 state,
                 "retrieve_node",
                 "finish",

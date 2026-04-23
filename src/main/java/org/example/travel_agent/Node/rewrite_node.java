@@ -4,14 +4,13 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.travel_agent.advisor.ContextMemoryAdvisor;
 import org.example.travel_agent.common.SseEventUtil;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-import java.util.Objects;
 
 @Slf4j
 @Component
@@ -20,7 +19,9 @@ public class rewrite_node implements NodeAction {
 
     private final ChatClient deepThinkChatClient;
 
-    private final Advisor memoryAdvisor;
+    private final ContextMemoryAdvisor memoryAdvisor;
+    private final SseEventUtil sseEventUtil;
+
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
@@ -31,21 +32,27 @@ public class rewrite_node implements NodeAction {
 
         log.info("开始改写用户问题，用户原始问题:{}",originalQuestion);
 
-        SseEventUtil.sendNodeStatus(state, "rewrite_node", "start", "开始改写用户问题");
+        sseEventUtil.sendNodeStatus(state, "rewrite_node", "start", "开始改写用户问题");
 
         String conversationId = state.value("conversationId", "");
 
-        ChatClient.CallResponseSpec call = deepThinkChatClient.prompt()
+        String content = deepThinkChatClient.prompt()
                 .system(classPathResource)
                 .advisors(memoryAdvisor)
-                .advisors(advisorSpec -> advisorSpec.param("conversationId",conversationId))
-                .call();
+                .advisors(advisorSpec -> advisorSpec.param("conversationId", conversationId))
+                .user(originalQuestion)
+                .call().content();
 
-        String rewriteQuestion = Objects.requireNonNull(call.content()).isBlank()?originalQuestion:call.content();
+        String rewriteQuestion= originalQuestion;
+        if (content != null) {
+            rewriteQuestion = content.isBlank()?originalQuestion:content;
 
-        log.info("改写用户问题完毕，改写后的问题:{}",rewriteQuestion);
+            log.info("改写用户问题完毕，改写后的问题:{}",rewriteQuestion);
+        }else {
+            log.info("改写失败");
+        }
 
-        SseEventUtil.sendNodeStatus(state, "rewrite_node", "finish", "问题改写完成");
+        sseEventUtil.sendNodeStatus(state, "rewrite_node", "finish", "问题改写完成");
 
         return Map.of("rewrite_question",rewriteQuestion);
     }

@@ -4,8 +4,6 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
 import org.example.travel_agent.common.SseEventUtil;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
@@ -16,13 +14,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class summary_node implements NodeAction {
 
-    private final ChatClient deepThinkChatClient;
-
-    private final Advisor memoryAdvisor;
+    private final SseEventUtil sseEventUtil;
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
-        SseEventUtil.sendNodeStatus(state, "summary_node", "start", "开始汇总工具结果");
+        sseEventUtil.sendNodeStatus(state, "summary_node", "start", "开始汇总工具结果");
 
         String rewriteQuestion = state.value("rewrite_question", "");
         String searchContext = state.value("search_context", "");
@@ -42,7 +38,7 @@ public class summary_node implements NodeAction {
                 "retrieve_context", retrieveContext == null ? "" : retrieveContext
         ));
 
-        SseEventUtil.sendNodeStatus(state, "summary_node", "finish", "结果汇总完成");
+        sseEventUtil.sendNodeStatus(state, "summary_node", "finish", "结果汇总完成");
         return Map.of("summary_prompt",summaryInput);
     }
 }

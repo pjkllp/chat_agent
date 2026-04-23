@@ -42,15 +42,7 @@ public class summary_node implements NodeAction {
                 "retrieve_context", retrieveContext == null ? "" : retrieveContext
         ));
 
-        ChatClient.CallResponseSpec call = deepThinkChatClient.prompt()
-                .advisors(memoryAdvisor)
-                .system(classPathResource)
-                .user(summaryInput)
-                .call();
-
-        String content = call.content();
-
         SseEventUtil.sendNodeStatus(state, "summary_node", "finish", "结果汇总完成");
-        return Map.of("summary_prompt",content);
+        return Map.of("summary_prompt",summaryInput);
     }
 }

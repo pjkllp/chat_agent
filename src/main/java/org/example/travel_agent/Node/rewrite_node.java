@@ -33,9 +33,12 @@ public class rewrite_node implements NodeAction {
 
         SseEventUtil.sendNodeStatus(state, "rewrite_node", "start", "开始改写用户问题");
 
+        String conversationId = state.value("conversationId", "");
+
         ChatClient.CallResponseSpec call = deepThinkChatClient.prompt()
                 .system(classPathResource)
                 .advisors(memoryAdvisor)
+                .advisors(advisorSpec -> advisorSpec.param("conversationId",conversationId))
                 .call();
 
         String rewriteQuestion = Objects.requireNonNull(call.content()).isBlank()?originalQuestion:call.content();

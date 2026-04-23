@@ -40,8 +40,11 @@ public class answer_node implements NodeAction {
 
         ClassPathResource classPathResource = new ClassPathResource("prompt/answer.st");
 
+        String conversationId = state.value("conversationId", "");
+
         ChatClient.StreamResponseSpec stream = deepThinkChatClient.prompt()
                 .advisors(memoryAdvisor)
+                .advisors(advisorSpec -> advisorSpec.param("conversationId",conversationId))
                 .system(classPathResource)
                 .user(summaryPrompt)
                 .stream();

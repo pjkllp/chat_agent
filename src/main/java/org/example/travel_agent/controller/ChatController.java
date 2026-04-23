@@ -18,13 +18,16 @@ public class ChatController {
     private final CompiledGraph deepThinkGraph;
 
     @GetMapping("/deepThink")
-    public SseEmitter deepThink(@RequestParam("question")String originalQuestion){
+    public SseEmitter deepThink(@RequestParam("question")String originalQuestion,
+                                @RequestParam("conversationId")String conversationId){
         SseEmitter sse = new SseEmitter(0L);
         try {
             deepThinkGraph.invoke(
                     Map.of(
                             "sse", sse,
-                            "original_question", originalQuestion)
+                            "original_question", originalQuestion,
+                            "conversationId",conversationId
+                    )
             );
         } catch (Exception e) {
             sse.completeWithError(e);

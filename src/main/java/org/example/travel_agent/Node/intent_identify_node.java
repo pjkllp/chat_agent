@@ -41,12 +41,15 @@ public class intent_identify_node implements NodeAction {
         result.put("retrieve_intent", "");
         result.put("tool_intent", "");
 
+        String conversationId = state.value("conversationId", "");
+
         boolean parsed = false;
         int count = 0;
         while (!parsed && count < MAX_REPEAT_COUNT) {
             try {
                 String content = deepThinkChatClient.prompt()
                         .advisors(memoryAdvisor)
+                        .advisors(advisorSpec -> advisorSpec.param("conversationId",conversationId))
                         .system(classPathResource)
                         .user(repeatQuestion)
                         .call()

@@ -5,7 +5,7 @@ import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
 import org.example.travel_agent.common.SseEventUtil;
 import org.example.travel_agent.dto.BaiduSearchResult;
-import org.example.travel_agent.service.BaiduSearchService;
+import org.example.travel_agent.service.impl.BaiduSearchService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

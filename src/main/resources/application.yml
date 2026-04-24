@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: ReactAgent
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: 123456
+      database: 1
+      # 2核4G服务器Redis连接池配置（Lettuce）
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 8
+          min-idle: 2
+          max-wait: 3000ms
   datasource:
     username: postgres
     password: 123456
@@ -22,7 +35,25 @@ spring:
           dimensions: 1024
           model: text-embedding-v4
 
+  mail:
+    host: smtp.qq.com       # QQ 邮箱 SMTP 服务器地址
+    port: 587               # 端口（587 是 TLS 加密端口，推荐使用）
+    username: 2797857024@qq.com # 你的 QQ 邮箱账号（发件人邮箱）
+    password: hsjyuvevaqqlddbh  # 你的 QQ 邮箱授权码（不是登录密码！）
+    default-encoding: UTF-8 # 编码格式
+    properties:
+      mail:
+        smtp:
+          auth: true        # 开启认证
+          starttls:
+            enable: true    # 开启 TLS 加密
+            required: true  # 强制使用 TLS 加密
+
 app:
+  jwt:
+    # HS256 密钥须足够长；生产环境务必用环境变量覆盖
+    secret: ${JWT_SECRET:change-me-in-production-use-at-least-32-chars!!}
+    expiration-ms: 86400000
   retrieval:
     top-k: 3
   search:

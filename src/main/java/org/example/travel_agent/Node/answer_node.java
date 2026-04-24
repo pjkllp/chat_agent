@@ -42,7 +42,7 @@ public class answer_node implements NodeAction {
 
         String conversationId = state.value("conversationId", "");
 
-        String userId = state.value("userId", "");
+        Long userId = state.value("userId", Long.class).orElse(null);
 
         try {
             AtomicBoolean hasStreamChunk = new AtomicBoolean(false);

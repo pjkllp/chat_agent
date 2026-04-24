@@ -37,6 +37,7 @@ public class intent_identify_node implements NodeAction {
 
         ClassPathResource classPathResource = new ClassPathResource("./prompt/intent_identify_node.st");
         String rewriteQuestion = state.value("rewrite_question", state.value("original_question", ""));
+        Long userId = state.value("userId", Long.class).orElse(null);
         Map<String, Object> result = new HashMap<>();
         result.put("search_intent", "");
         result.put("retrieve_intent", "");
@@ -50,7 +51,12 @@ public class intent_identify_node implements NodeAction {
             try {
                 String content = deepThinkChatClient.prompt()
                         .advisors(memoryAdvisor)
-                        .advisors(advisorSpec -> advisorSpec.param("conversationId",conversationId))
+                        .advisors(advisorSpec -> advisorSpec.params(
+                                Map.of(
+                                        "conversationId",conversationId,
+                                        "userId",userId
+                                ))
+                        )
                         .system(classPathResource)
                         .user(rewriteQuestion)
                         .call()

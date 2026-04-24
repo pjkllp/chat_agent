@@ -1,12 +1,13 @@
 package org.example.travel_agent.controller;
 
 import com.alibaba.cloud.ai.graph.CompiledGraph;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.example.travel_agent.common.SseEmitterRegistry;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.example.travel_agent.constant.JwtAuthConstants;
+import org.example.travel_agent.dto.DeepThinkRequest;
+import org.example.travel_agent.service.ChatService;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
@@ -18,34 +19,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ChatController {
 
-    private final CompiledGraph deepThinkGraph;
-    private final SseEmitterRegistry sseEmitterRegistry;
+    private final ChatService chatService;
 
-    @GetMapping("/deepThink")
-    public SseEmitter deepThink(@RequestParam("question")String originalQuestion,
-                                @RequestParam("conversationId")String conversationId,
-                                @RequestParam("userId")String userId){
-        SseEmitter sse = new SseEmitter(0L);
-        String executionId = UUID.randomUUID().toString();
-        sseEmitterRegistry.put(executionId, sse);
-        sse.onCompletion(() -> sseEmitterRegistry.remove(executionId));
-        sse.onTimeout(() -> sseEmitterRegistry.remove(executionId));
-        sse.onError((ex) -> sseEmitterRegistry.remove(executionId));
-        CompletableFuture.runAsync(() -> {
-            try {
-                deepThinkGraph.invoke(
-                        Map.of(
-                                "execution_id", executionId,
-                                "original_question", originalQuestion,
-                                "conversationId", conversationId,
-                                "userId", userId
-                        )
-                );
-            } catch (Exception e) {
-                sse.completeWithError(e);
-                sseEmitterRegistry.remove(executionId);
-            }
-        });
+    @PostMapping("/deepThink")
+    public SseEmitter deepThink(@RequestBody DeepThinkRequest requestParam) {
+
+        SseEmitter sse=new SseEmitter(0L);
+
+        chatService.deepThink(requestParam,sse);
+
         return sse;
     }
 }

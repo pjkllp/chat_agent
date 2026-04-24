@@ -57,10 +57,10 @@ app:
   retrieval:
     top-k: 3
   search:
-    top-k: 5
+    top-k: 15
     timeout-ms: 8000
   fetch:
     timeout-ms: 12000
     max-content-length: 3000
-    top-k: 3
+    top-k: 15
 

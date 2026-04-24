@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.cloud.ai.graph.CompiledGraph;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.common.SseEmitterRegistry;
 import org.example.travel_agent.common.UserContext;
 import org.example.travel_agent.dto.DeepThinkRequest;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
@@ -43,6 +45,7 @@ public class ChatServiceImpl implements ChatService {
         sse.onError((ex) -> sseEmitterRegistry.remove(finalConversationId));
         CompletableFuture.runAsync(() -> {
             try {
+                log.info("[deepThink] start invoke, conversationId={}, userId={}", finalConversationId, userId);
                 deepThinkGraph.invoke(
                         Map.of(
                                 "original_question", originalQuestion,
@@ -50,7 +53,9 @@ public class ChatServiceImpl implements ChatService {
                                 "userId",userId
                         )
                 );
+                log.info("[deepThink] invoke finished, conversationId={}", finalConversationId);
             } catch (Exception e) {
+                log.error("[deepThink] invoke failed, conversationId={}, msg={}", finalConversationId, e.getMessage(), e);
                 sse.completeWithError(e);
                 sseEmitterRegistry.remove(finalConversationId);
             }

@@ -29,7 +29,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private final StringRedisTemplate stringRedisTemplate;
 
-    public static final String USER_AUTH_KEY="user:%s:auth:key";
+    public static final String USER_AUTH_KEY="user:login:%s";
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -39,12 +39,19 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         String rawAuth = request.getHeader("Authorization");
-        if (rawAuth == null || rawAuth.isBlank()||!rawAuth.startsWith("Bearer ")) {
+        if (rawAuth == null || rawAuth.isBlank()) {
             writeUnauthorized(response, "缺少 Authorization 请求头，格式必须为：Bearer <access_token>");
             return false;
         }
-
-        String token = rawAuth.replace("Bearer", "");
+        if (!rawAuth.startsWith(BEARER_SCHEME + " ")) {
+            writeUnauthorized(response, "Authorization 请求头格式错误，必须为：Bearer <access_token>");
+            return false;
+        }
+        String token = rawAuth.substring((BEARER_SCHEME + " ").length()).trim();
+        if (token.isBlank()) {
+            writeUnauthorized(response, "access_token 不能为空");
+            return false;
+        }
 
         UserInfo userInfo = jwtUtil.parseUserInfo(token);
 

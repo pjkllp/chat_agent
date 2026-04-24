@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 @Slf4j
@@ -59,40 +58,49 @@ public class LLMConfig {
                 .addEdge("rewrite_node","intent_identify_node")
                 //工具节点归并
                 .addEdge("search_node","fetch_node")
-
-                .addEdge("fetch_node","summary_node")
                 .addEdge("retrieve_node","summary_node")
                 //答案输出
                 .addEdge("summary_node","answer_node")
                 .addEdge("answer_node",StateGraph.END)
                 //条件路由
-                .addParallelConditionalEdges("intent_identify_node", AsyncMultiCommandAction.node_async(
+                .addConditionalEdges("intent_identify_node", AsyncCommandAction.node_async(
                         (state, config) ->{
                             String searchIntent = state.value("search_intent", "");
                             String retrieveIntent = state.value("retrieve_intent", "");
-                            ArrayList<String> routes=new ArrayList<>();
                             boolean hasSearchIntent = searchIntent != null && !searchIntent.isBlank();
                             boolean hasRetrieveIntent = retrieveIntent != null && !retrieveIntent.isBlank();
-                            //判断有哪些意图
-                            if (hasSearchIntent || hasRetrieveIntent){
-                                if(hasSearchIntent){
-                                    routes.add("search_intent");
-                                }
-                                if (hasRetrieveIntent){
-                                    routes.add("retrieve_intent");
-                                }
-                            }else {
-                                log.info("没有使用工具的意图，大模型直接回答");
-                                //没有意图直接进入answer_node直接回答
-                                routes.add("none");
+                            // 两种意图都存在时，先走搜索链路，抓取后再进入知识库检索
+                            if (hasSearchIntent && hasRetrieveIntent) {
+                                return new Command("both_intent");
                             }
-
-                            return new MultiCommand(routes);
+                            if (hasSearchIntent){
+                                return new Command("search_intent");
+                            }
+                            if (hasRetrieveIntent){
+                                return new Command("retrieve_intent");
+                            }
+                            log.info("没有使用工具的意图，大模型直接回答");
+                            return new Command("none");
                         }),
                         Map.of(
+                                "both_intent","search_node",
                                 "search_intent","search_node",
                                 "retrieve_intent","retrieve_node",
                                 "none","answer_node"
+                        )
+                )
+                .addConditionalEdges("fetch_node", AsyncCommandAction.node_async(
+                        (state, config) ->{
+                            String retrieveIntent = state.value("retrieve_intent", "");
+                            boolean hasRetrieveIntent = retrieveIntent != null && !retrieveIntent.isBlank();
+                            if (hasRetrieveIntent) {
+                                return new Command("to_retrieve");
+                            }
+                            return new Command("to_summary");
+                        }),
+                        Map.of(
+                                "to_retrieve","retrieve_node",
+                                "to_summary","summary_node"
                         )
                 );
         return deepThinkGraph.compile();

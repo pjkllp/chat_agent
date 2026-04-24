@@ -3,6 +3,7 @@ package org.example.travel_agent.Node;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.common.SseEventUtil;
 import org.example.travel_agent.dto.BaiduSearchResult;
 import org.example.travel_agent.service.impl.BaiduSearchService;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class search_node implements NodeAction {
@@ -22,7 +24,7 @@ public class search_node implements NodeAction {
     private final BaiduSearchService baiduSearchService;
     private final SseEventUtil sseEventUtil;
 
-    @Value("${app.search.top-k:5}")
+    @Value("${app.search.top-k:15}")
     private int topK;
 
     @Override
@@ -39,12 +41,20 @@ public class search_node implements NodeAction {
 
         List<BaiduSearchResult> results = baiduSearchService.search(query, topK);
         List<Map<String, Object>> matches = new ArrayList<>();
-        for (BaiduSearchResult result : results) {
+        for (int i = 0; i < results.size(); i++) {
+            BaiduSearchResult result = results.get(i);
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("title", result.getTitle() == null ? "" : result.getTitle());
             row.put("url", result.getUrl() == null ? "" : result.getUrl());
             row.put("snippet", result.getSnippet() == null ? "" : result.getSnippet());
             matches.add(row);
+
+            String title = result.getTitle() == null ? "" : result.getTitle();
+            String url = result.getUrl() == null ? "" : result.getUrl();
+            String hitLog = String.format("命中第%d条: %s | %s", i + 1, title, url);
+            log.info("[search_node] {}", hitLog);
+            // 通过 SSE 回传每一条命中，前端可直接看到具体结果
+            sseEventUtil.sendNodeStatus(state, "search_node", "hit", hitLog);
         }
         String searchContext = results.stream()
                 .map(item -> "标题: " + item.getTitle() + "\n链接: " + item.getUrl())

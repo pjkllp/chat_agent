@@ -55,7 +55,7 @@ app:
     secret: ${JWT_SECRET:change-me-in-production-use-at-least-32-chars!!}
     expiration-ms: 86400000
   retrieval:
-    top-k: 3
+    top-k: 15
   search:
     top-k: 15
     timeout-ms: 8000
@@ -67,3 +67,4 @@ jina:
   api:
     key: ${JinaApiKey:}
     url: https://r.jina.ai
+  timeout-ms: 6000

@@ -63,7 +63,8 @@ public class answer_node implements NodeAction {
                         try {
                             sseEventUtil.sendAnswerChunk(state, data);
                         } catch (Exception e) {
-                            throw new IllegalStateException("Failed to send answer chunk via SSE", e);
+                            // 用户切换会话/新建会话会主动中止前端连接，这里不应按系统错误处理
+                            throw new ClientDisconnectedException("SSE client disconnected", e);
                         }
                     })
                     .blockLast();
@@ -90,12 +91,44 @@ public class answer_node implements NodeAction {
             sseEventUtil.sendNodeStatus(state, "answer_node", "finish", "最终答案已生成");
             sseEventUtil.sendNodeStatus(state, "answer_node", "done", "工作流执行完成");
         } catch (Exception e) {
-            log.error("Generate answer failed", e);
-            sseEventUtil.sendNodeStatus(state, "answer_node", "error", "生成答案失败");
+            if (isClientDisconnected(e)) {
+                log.info("SSE client disconnected, stop streaming answer gracefully");
+            } else {
+                log.error("Generate answer failed", e);
+                sseEventUtil.sendNodeStatus(state, "answer_node", "error", "生成答案失败");
+            }
         } finally {
             sseEventUtil.complete(state);
         }
 
         return Map.of();
+    }
+
+    private boolean isClientDisconnected(Throwable e) {
+        Throwable cur = e;
+        while (cur != null) {
+            if (cur instanceof ClientDisconnectedException) {
+                return true;
+            }
+            String msg = cur.getMessage();
+            if (msg != null) {
+                String lower = msg.toLowerCase();
+                if (lower.contains("clientabortexception")
+                        || lower.contains("asyncrequestnotusableexception")
+                        || lower.contains("broken pipe")
+                        || lower.contains("connection reset")
+                        || msg.contains("已建立的连接")) {
+                    return true;
+                }
+            }
+            cur = cur.getCause();
+        }
+        return false;
+    }
+
+    private static class ClientDisconnectedException extends RuntimeException {
+        public ClientDisconnectedException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 }

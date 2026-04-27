@@ -25,7 +25,7 @@ public class retrieve_node implements NodeAction {
     private final KnowledgeVectorMapper knowledgeVectorMapper;
     private final SseEventUtil sseEventUtil;
 
-    @Value("${app.retrieval.top-k:3}")
+    @Value("${app.retrieval.top-k:15}")
     private int topK;
 
     @Override

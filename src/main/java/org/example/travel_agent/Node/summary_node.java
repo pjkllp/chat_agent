@@ -3,6 +3,7 @@ package org.example.travel_agent.Node;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.common.SseEventUtil;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.core.io.ClassPathResource;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class summary_node implements NodeAction {
@@ -37,7 +39,7 @@ public class summary_node implements NodeAction {
                 "retrieve_keyword", retrieveKeyword == null ? "" : retrieveKeyword,
                 "retrieve_context", retrieveContext == null ? "" : retrieveContext
         ));
-
+        log.info(summaryInput);
         sseEventUtil.sendNodeStatus(state, "summary_node", "finish", "结果汇总完成");
         return Map.of("summary_prompt",summaryInput);
     }

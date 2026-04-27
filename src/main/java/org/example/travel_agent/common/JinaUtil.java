@@ -1,19 +1,16 @@
 package org.example.travel_agent.common;
 
 import cn.hutool.core.util.StrUtil;
-import lombok.RequiredArgsConstructor;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.Exceptions.ServerException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class JinaUtil {
-
-    private final RestClient restClient;
 
     @Value("${jina.api.key:}")
     private String jinaApiKey;
@@ -21,28 +18,28 @@ public class JinaUtil {
     @Value("${jina.api.url:https://r.jina.ai}")
     private String baseUrl;
 
+    @Value("${jina.timeout-ms:6000}")
+    private int timeoutMs;
+
     public String parseUrlToMarkdown(String url){
         if (StrUtil.isBlank(url)) {
             return "";
         }
-        String reqUrl = baseUrl.endsWith("/") ? baseUrl + url : baseUrl + "/" + url;
+        String target = url.trim();
+        String reqUrl = baseUrl.endsWith("/") ? baseUrl + target : baseUrl + "/" + target;
         try {
-            return restClient.get()
-                    .uri(reqUrl)
-                    // 配置请求头：指定AI引擎、返回格式、鉴权
-                    .header("X-Engine", "readerlm-v2") // 用最新的AI提取引擎，效果更好
-                    .header("X-Return-Format", "markdown") // 固定返回Markdown
-                    .headers(headers -> {
-                        // 有API Key就添加鉴权，提升请求限额
-                        if (jinaApiKey != null && !jinaApiKey.isBlank()) {
-                            headers.add("Authorization", "Bearer " + jinaApiKey);
-                        }
-                    })
-                    // 执行请求，获取字符串结果
-                    .retrieve()
-                    .body(String.class);
+            HttpRequest request = HttpRequest.of(reqUrl)
+                    .timeout(timeoutMs)
+                    .header("X-Engine", "readerlm-v2")
+                    .header("X-Return-Format", "markdown");
+            if (jinaApiKey != null && !jinaApiKey.isBlank()) {
+                request.header("Authorization", "Bearer " + jinaApiKey);
+            }
+            try (HttpResponse response = request.execute()) {
+                return StrUtil.nullToEmpty(response.body());
+            }
         } catch (Exception e) {
-            log.warn("Jina parse failed, url={}, msg={}", url, e.getMessage());
+            log.warn("Jina parse failed, reqUrl={}, msg={}", reqUrl, e.getMessage());
             throw new ServerException("网页解析失败");
         }
     }

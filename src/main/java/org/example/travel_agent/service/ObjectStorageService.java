@@ -6,17 +6,11 @@ import java.io.InputStream;
 
 public interface ObjectStorageService {
 
-    KnowledgeSpace createKnowledgeSpace(String kbId);
+    void createKnowledgeSpace(String kbName);
 
-    UploadResult upload(MultipartFile file, String kbId);
+    void upload(MultipartFile file, String kbName);
 
     InputStream getObjectStream(String bucket, String objectKey);
 
     void deleteObject(String bucket, String objectKey);
-
-    record KnowledgeSpace(String kbId, String bucket) {
-    }
-
-    record UploadResult(String objectKey, String bucket) {
-    }
 }

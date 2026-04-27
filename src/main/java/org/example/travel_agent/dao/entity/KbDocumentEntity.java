@@ -1,11 +1,14 @@
 package org.example.travel_agent.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.travel_agent.constant.DocumentStatusEnum;
 
 import java.time.OffsetDateTime;
 
@@ -20,15 +23,16 @@ import java.time.OffsetDateTime;
 public class KbDocumentEntity {
 
     /**
-     * 文档ID（UUID）。
+     * 文档ID（雪花ID）。
      */
-    private String id;
+    @TableId(type = IdType.ASSIGN_ID)
+    private Long id;
 
     /**
      * 所属知识库ID。
      */
     @TableField("kb_id")
-    private String kbId;
+    private Long kbId;
 
     /**
      * 原始文件名（展示用）。
@@ -49,9 +53,9 @@ public class KbDocumentEntity {
 
     /**
      * 文档状态。
-     * INIT / CHUNKING / CHUNKED / EMBEDDING / VECTORIZED / FAILED
+     * 0=INIT,1=CHUNKING,2=CHUNKED,3=EMBEDDING,4=VECTORIZED,5=FAILED
      */
-    private String status;
+    private int status;
 
     /**
      * 文档是否启用。

@@ -26,31 +26,27 @@ public class RustfsObjectStorageService implements ObjectStorageService {
     private final RustfsProperties rustfsProperties;
 
     @Override
-    public KnowledgeSpace createKnowledgeSpace(String kbId) {
-        if (StrUtil.isBlank(kbId)) {
+    public void createKnowledgeSpace(String kbName) {
+        if (kbName == null||kbName.isBlank()) {
             throw new IllegalArgumentException("kbId 不能为空");
         }
-        String trimmedKbId = kbId.trim();
-        String bucket = buildKbBucketName(trimmedKbId);
         try {
-            ensureBucketExists(bucket);
-            return new KnowledgeSpace(trimmedKbId, bucket);
+            ensureBucketExists(kbName);
         } catch (Exception e) {
-            log.error("RustFS create knowledge space failed, kbId={}, msg={}", kbId, e.getMessage(), e);
+            log.error("RustFS create knowledge space failed,  msg={}", e.getMessage(), e);
             throw new RuntimeException("创建知识库存储空间失败");
         }
     }
 
     @Override
-    public UploadResult upload(MultipartFile file, String kbId) {
+    public void upload(MultipartFile file, String kbName) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("上传文件不能为空");
         }
-        if (StrUtil.isBlank(kbId)) {
+        if (kbName == null||kbName.isBlank()) {
             throw new IllegalArgumentException("kbId 不能为空");
         }
-        String bucket = buildKbBucketName(kbId.trim());
-        verifyBucketExists(bucket);
+        verifyBucketExists(kbName);
         String originalName = StrUtil.blankToDefault(file.getOriginalFilename(), "unknown.bin");
         String ext = "";
         int idx = originalName.lastIndexOf('.');
@@ -61,13 +57,12 @@ public class RustfsObjectStorageService implements ObjectStorageService {
         try (InputStream in = file.getInputStream()) {
             rustfsMinioClient.putObject(
                     PutObjectArgs.builder()
-                            .bucket(bucket)
+                            .bucket(kbName)
                             .object(objectKey)
                             .stream(in, file.getSize(), -1)
                             .contentType(StrUtil.blankToDefault(file.getContentType(), "application/octet-stream"))
                             .build()
             );
-            return new UploadResult(objectKey, bucket);
         } catch (Exception e) {
             log.error("RustFS upload failed, file={}, msg={}", originalName, e.getMessage(), e);
             throw new RuntimeException("上传 RustFS 失败");
@@ -137,11 +132,4 @@ public class RustfsObjectStorageService implements ObjectStorageService {
         }
     }
 
-    private String buildKbBucketName(String kbId) {
-        String baseBucket = rustfsProperties.getBucket();
-        if (StrUtil.isBlank(baseBucket)) {
-            throw new IllegalStateException("rustfs.bucket 未配置");
-        }
-        return (baseBucket.trim() + "-" + kbId).toLowerCase();
-    }
 }

@@ -1,6 +1,8 @@
 package org.example.travel_agent.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,9 +22,10 @@ import java.time.OffsetDateTime;
 public class KnowledgeBaseEntity {
 
     /**
-     * 知识库ID（UUID）。
+     * 知识库ID（雪花ID）。
      */
-    private String id;
+    @TableId(type = IdType.ASSIGN_ID)
+    private Long id;
 
     /**
      * 知识库名称。

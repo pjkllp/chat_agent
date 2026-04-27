@@ -54,7 +54,7 @@ public class RedisStore implements Store {
         String zsetKey = String.format(ZSET_USER_CONVERSATION_KEY, userId, conversationId);
         String hashKey= String.format(HASH_USER_CONVERSATION_KEY,userId,conversationId);
 
-        Set<String> range = stringRedisTemplate.opsForZSet().range(zsetKey, 0, count-1);
+        Set<String> range = stringRedisTemplate.opsForZSet().range(zsetKey, 0, (count-1)* 2L);
 
         ArrayList<AiChatMemoryEntity> messages = new ArrayList<>(count);
         if (range != null) {

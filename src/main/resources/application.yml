@@ -71,3 +71,9 @@ jina:
 memory:
   history:
     len: 10
+rustfs:
+  endpoint: http://127.0.0.1:9005
+  access-key: ${RUSTFS_ACCESS_KEY:rustfsadmin}
+  secret-key: ${RUSTFS_SECRET_KEY:rustfsadmin}
+  bucket: ${RUSTFS_BUCKET:knowledge-docs}
+  secure: false

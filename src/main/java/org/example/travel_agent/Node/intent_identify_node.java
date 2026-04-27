@@ -41,7 +41,6 @@ public class intent_identify_node implements NodeAction {
         Map<String, Object> result = new HashMap<>();
         result.put("search_intent", "");
         result.put("retrieve_intent", "");
-        result.put("tool_intent", "");
 
         String conversationId = state.value("conversationId", "");
 

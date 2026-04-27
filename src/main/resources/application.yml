@@ -63,4 +63,7 @@ app:
     timeout-ms: 12000
     max-content-length: 3000
     top-k: 15
-
+jina:
+  api:
+    key: ${JinaApiKey:}
+    url: https://r.jina.ai

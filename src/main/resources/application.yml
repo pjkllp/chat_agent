@@ -68,3 +68,6 @@ jina:
     key: ${JinaApiKey:}
     url: https://r.jina.ai
   timeout-ms: 6000
+memory:
+  history:
+    len: 10

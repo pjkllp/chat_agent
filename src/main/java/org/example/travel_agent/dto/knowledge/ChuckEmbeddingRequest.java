@@ -9,15 +9,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ChuckRequest {
+public class ChuckEmbeddingRequest {
 
-    //分块策略
-    private int chuckStrategy;
-
-    //文档所属知识库id
+    //知识库id
     private String kbId;
 
-    //需要分块的文档id
-    private long doc_id;
-
+    //文档id
+    private String docId;
 }

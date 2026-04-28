@@ -16,7 +16,7 @@ public class KbDocumentPageRequest extends Page<KbDocumentEntity> {
     /**
      * 按知识库ID过滤（可选）。
      */
-    private Long kbId;
+    private String kbId;
 
     /**
      * 按文件名模糊查询（可选）。

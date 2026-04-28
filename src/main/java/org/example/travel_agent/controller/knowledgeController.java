@@ -7,15 +7,7 @@ import org.apache.tika.exception.TikaException;
 import org.example.travel_agent.Exceptions.ClientException;
 import org.example.travel_agent.dao.entity.KbDocumentEntity;
 import org.example.travel_agent.dto.Result;
-import org.example.travel_agent.dto.knowledge.ChuckRequest;
-import org.example.travel_agent.dto.knowledge.CreateKnowledgeBaseRequest;
-import org.example.travel_agent.dto.knowledge.KbChunkPageRequest;
-import org.example.travel_agent.dto.knowledge.KbChunkPageResponse;
-import org.example.travel_agent.dto.knowledge.KbDocumentPageRequest;
-import org.example.travel_agent.dto.knowledge.KbDocumentPageResponse;
-import org.example.travel_agent.dto.knowledge.KnowledgeBasePageRequest;
-import org.example.travel_agent.dto.knowledge.KnowledgeBasePageResponse;
-import org.example.travel_agent.dto.knowledge.ParseDocumentRequest;
+import org.example.travel_agent.dto.knowledge.*;
 import org.example.travel_agent.service.KnowledgeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -57,7 +49,7 @@ public class knowledgeController {
      */
     @PostMapping("/uploadDoc")
     public Result<Void> uploadDoc(@RequestParam("file") MultipartFile file,
-                                  @RequestParam("kbId") long kbId) throws ClientException {
+                                  @RequestParam("kbId") String kbId) throws ClientException {
         knowledgeService.uploadDoc(file,kbId);
         return Result.success("上传中，请稍后刷新!");
     }
@@ -94,6 +86,12 @@ public class knowledgeController {
     public Result<Void> chuckDoc(@RequestBody ChuckRequest request){
         knowledgeService.chuckDoc(request);
         return Result.success("分块中，请稍后刷新!");
+    }
+
+    @PostMapping("/chuckEmbedding")
+    public Result<Void> chuckEmbedding(@RequestBody ChuckEmbeddingRequest request) throws ClientException {
+        knowledgeService.chuckEmbedding(request);
+        return Result.success("向量化中，请稍后刷新");
     }
 
     @GetMapping("/kb/page")

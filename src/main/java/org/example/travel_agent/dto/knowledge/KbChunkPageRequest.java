@@ -16,7 +16,7 @@ public class KbChunkPageRequest extends Page<KbChunkEntity> {
     /**
      * 所属知识库ID（可选）。
      */
-    private Long kbId;
+    private String kbId;
 
     /**
      * 所属文档ID（建议必传）。

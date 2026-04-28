@@ -8,7 +8,7 @@ public interface ObjectStorageService {
 
     void createKnowledgeSpace(String kbName);
 
-    void upload(MultipartFile file, String kbName);
+    String upload(MultipartFile file, String kbName);
 
     InputStream getObjectStream(String bucket, String objectKey);
 

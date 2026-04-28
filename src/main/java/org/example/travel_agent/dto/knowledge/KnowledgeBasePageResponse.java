@@ -1,5 +1,6 @@
 package org.example.travel_agent.dto.knowledge;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,7 +14,7 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class KnowledgeBasePageResponse {
 
-    private Long id;
+    private String id;
 
     private String kbName;
 
@@ -21,7 +22,9 @@ public class KnowledgeBasePageResponse {
 
     private Boolean enabled;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private OffsetDateTime createdAt;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private OffsetDateTime updatedAt;
 }

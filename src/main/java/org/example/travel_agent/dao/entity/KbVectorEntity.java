@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.travel_agent.dao.typehandler.PgVectorTypeHandler;
 
 import java.time.OffsetDateTime;
 
@@ -18,7 +19,7 @@ import java.time.OffsetDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("t_kb_vector")
+@TableName(value = "t_kb_vector", autoResultMap = true)
 public class KbVectorEntity {
 
     /**
@@ -57,9 +58,10 @@ public class KbVectorEntity {
 
     /**
      * 向量（vector(1024)）。
-     * 这里先用 String 承接数据库向量文本表示（如 "[0.1,0.2,...]"）。
+     * Java 侧使用 float[]，通过 TypeHandler 与 pgvector 做映射。
      */
-    private String embedding;
+    @TableField(typeHandler = PgVectorTypeHandler.class)
+    private float[] embedding;
 
     /**
      * 向量是否启用。

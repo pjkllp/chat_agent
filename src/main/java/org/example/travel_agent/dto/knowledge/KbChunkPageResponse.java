@@ -1,9 +1,11 @@
 package org.example.travel_agent.dto.knowledge;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.OffsetDateTime;
 
@@ -13,11 +15,11 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class KbChunkPageResponse {
 
-    private Long id;
+    private String id;
 
-    private Long kbId;
+    private String kbId;
 
-    private Long docId;
+    private String docId;
 
     private Integer chunkNo;
 
@@ -25,7 +27,9 @@ public class KbChunkPageResponse {
 
     private Boolean enabled;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private OffsetDateTime createdAt;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private OffsetDateTime updatedAt;
 }

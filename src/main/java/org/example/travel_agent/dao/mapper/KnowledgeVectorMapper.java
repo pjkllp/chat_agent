@@ -14,7 +14,8 @@ public interface KnowledgeVectorMapper extends BaseMapper<KnowledgeVectorEntity>
     @Select("""
             SELECT id, content, embedding,
                    (embedding <=> CAST(#{queryVector} AS vector)) AS distance
-            FROM knowledge_base
+            FROM t_kb_vector
+            WHERE enabled = true
             ORDER BY embedding <=> CAST(#{queryVector} AS vector)
             LIMIT #{topK}
             """)

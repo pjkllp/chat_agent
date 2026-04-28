@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@TableName("t_knowledge_base")
+@TableName("t_kb_vector")
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

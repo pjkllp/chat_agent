@@ -39,7 +39,7 @@ public class RustfsObjectStorageService implements ObjectStorageService {
     }
 
     @Override
-    public void upload(MultipartFile file, String kbName) {
+    public String upload(MultipartFile file, String kbName) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("上传文件不能为空");
         }
@@ -57,6 +57,7 @@ public class RustfsObjectStorageService implements ObjectStorageService {
                             .contentType(StrUtil.blankToDefault(file.getContentType(), "application/octet-stream"))
                             .build()
             );
+            return objectKey;
         } catch (Exception e) {
             log.error("RustFS upload failed, file={}, msg={}", file.getOriginalFilename(), e.getMessage(), e);
             throw new RuntimeException("上传 RustFS 失败");

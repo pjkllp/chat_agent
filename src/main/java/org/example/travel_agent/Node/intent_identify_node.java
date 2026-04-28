@@ -73,6 +73,16 @@ public class intent_identify_node implements NodeAction {
                 }
 
                 Object intentsObj = jsonObject.get("intents");
+                // 兼容模型直接返回顶层字段：
+                // {"search_intent":"...", "retrieve_intent":"..."}
+                if (intentsObj == null
+                        && (jsonObject.containsKey("search_intent") || jsonObject.containsKey("retrieve_intent"))) {
+                    intentsObj = jsonObject;
+                }
+                if (intentsObj == null) {
+                    count++;
+                    continue;
+                }
                 List<Map<String, String>> intentPairs = normalizeIntentPairs(intentsObj);
                 for (Map<String, String> pair : intentPairs) {
                     for (Map.Entry<String, String> entry : pair.entrySet()) {
@@ -87,6 +97,8 @@ public class intent_identify_node implements NodeAction {
                         result.put(intentKey, intentValue == null ? "" : intentValue.trim());
                     }
                 }
+                log.info("intent_identify_node parsed intents: search_intent='{}', retrieve_intent='{}'",
+                        result.get("search_intent"), result.get("retrieve_intent"));
                 parsed = true;
             } catch (Exception parseException) {
                 log.warn("意图解析失败，准备重试: {}", parseException.getMessage());

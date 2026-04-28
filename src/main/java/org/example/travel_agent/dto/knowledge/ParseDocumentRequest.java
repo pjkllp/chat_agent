@@ -6,12 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class CreateKnowledgeBaseRequest {
+public class ParseDocumentRequest {
 
-    private String kbName;
+    //文档id
+    private long docId;
 
-    private String description;
 }

@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.travel_agent.Exceptions.ClientException;
 import org.example.travel_agent.common.JwtUtil;
 import org.example.travel_agent.common.UserContext;
-import org.example.travel_agent.constant.JwtAuthConstants;
 import org.example.travel_agent.dto.UserInfo;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
@@ -17,7 +16,6 @@ import org.springframework.web.servlet.ModelAndView;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor

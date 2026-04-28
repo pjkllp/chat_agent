@@ -52,10 +52,10 @@ public class KbDocumentEntity {
     private String objectKey;
 
     /**
-     * 文档状态。
-     * 0=INIT,1=CHUNKING,2=CHUNKED,3=EMBEDDING,4=VECTORIZED,5=FAILED
+     * 文档主状态（status）。
+     * 0=INIT，1=PARSED，2=CHUNKING，3=CHUNKED，4=EMBEDDING，5=VECTORIZED，6=FAILED
      */
-    private int status;
+    private DocumentStatusEnum status;
 
     /**
      * 文档是否启用。

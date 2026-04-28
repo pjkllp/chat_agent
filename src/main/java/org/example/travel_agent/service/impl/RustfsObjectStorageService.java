@@ -47,13 +47,7 @@ public class RustfsObjectStorageService implements ObjectStorageService {
             throw new IllegalArgumentException("kbId 不能为空");
         }
         verifyBucketExists(kbName);
-        String originalName = StrUtil.blankToDefault(file.getOriginalFilename(), "unknown.bin");
-        String ext = "";
-        int idx = originalName.lastIndexOf('.');
-        if (idx >= 0 && idx < originalName.length() - 1) {
-            ext = originalName.substring(idx);
-        }
-        String objectKey = IdUtil.getSnowflakeNextIdStr() + ext;
+        String objectKey = KnowledgeServiceImpl.getObjectKey(StrUtil.blankToDefault(file.getOriginalFilename(), "unknown.bin"));
         try (InputStream in = file.getInputStream()) {
             rustfsMinioClient.putObject(
                     PutObjectArgs.builder()
@@ -64,7 +58,7 @@ public class RustfsObjectStorageService implements ObjectStorageService {
                             .build()
             );
         } catch (Exception e) {
-            log.error("RustFS upload failed, file={}, msg={}", originalName, e.getMessage(), e);
+            log.error("RustFS upload failed, file={}, msg={}", file.getOriginalFilename(), e.getMessage(), e);
             throw new RuntimeException("上传 RustFS 失败");
         }
     }

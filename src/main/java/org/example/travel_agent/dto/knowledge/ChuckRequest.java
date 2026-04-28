@@ -9,9 +9,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CreateKnowledgeBaseRequest {
+public class ChuckRequest {
 
-    private String kbName;
+    //分块策略
+    private int chuckStrategy;
 
-    private String description;
+    //需要分块的文档id
+    private long doc_id;
+
 }

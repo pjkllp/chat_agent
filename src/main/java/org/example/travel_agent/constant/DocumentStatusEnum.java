@@ -1,7 +1,6 @@
 package org.example.travel_agent.constant;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
-import com.baomidou.mybatisplus.core.enums.IEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -12,7 +11,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum DocumentStatusEnum implements IEnum<Integer> {
+public enum DocumentStatusEnum  {
 
     INIT(0, "初始化"),
     PARSED(1, "已解析"),
@@ -25,9 +24,4 @@ public enum DocumentStatusEnum implements IEnum<Integer> {
     @EnumValue
     private final Integer value;
     private final String desc;
-
-    @Override
-    public Integer getValue() {
-        return value;
-    }
 }

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>知识库管理</title>
+    <script type="module" src="/src/admin.js"></script>
+  </head>
+  <body>
+    <div class="build-shell">
+      <header class="build-header card">
+        <div>
+          <h1>知识库构建模块</h1>
+          <p>按接口顺序执行：创建知识库 → 上传文档 → 解析文档 → 文档分块</p>
+        </div>
+        <div class="header-actions">
+          <button type="button" class="btn-icon" id="themeToggle" title="切换明暗">◐</button>
+          <a class="btn-link" href="/">返回对话页</a>
+        </div>
+      </header>
+
+      <main class="build-main card">
+        <section class="step-block">
+          <h2>1) 创建知识库</h2>
+          <form id="createKbForm" class="form-grid">
+            <label class="field-label" for="kbName">知识库名称</label>
+            <input id="kbName" class="field-input" type="text" maxlength="128" placeholder="例如：产品手册库" required />
+            <label class="field-label" for="kbDesc">描述（可选）</label>
+            <textarea id="kbDesc" class="field-input field-textarea" rows="3" placeholder="描述这个知识库用途"></textarea>
+            <button type="submit" class="btn-primary">创建知识库</button>
+          </form>
+          <p class="step-tip">提示：当前接口不返回 kbId，请在数据库中查看新建记录的 ID。</p>
+        </section>
+
+        <section class="step-block">
+          <h2>2) 上传文档</h2>
+          <form id="uploadForm" class="form-grid">
+            <label class="field-label" for="uploadKbId">知识库ID（kbId）</label>
+            <input id="uploadKbId" class="field-input" type="number" min="1" placeholder="请输入 kbId" required />
+            <label class="field-label" for="docFile">文档文件</label>
+            <input id="docFile" class="field-input" type="file" required />
+            <button type="submit" class="btn-primary">上传文档</button>
+          </form>
+        </section>
+
+        <section class="step-block">
+          <h2>3) 解析文档</h2>
+          <form id="parseForm" class="form-grid">
+            <label class="field-label" for="parseDocId">文档ID（docId）</label>
+            <input id="parseDocId" class="field-input" type="number" min="1" placeholder="请输入 docId" required />
+            <button type="submit" class="btn-primary">开始解析</button>
+          </form>
+        </section>
+
+        <section class="step-block">
+          <h2>4) 文档分块</h2>
+          <form id="chunkForm" class="form-grid">
+            <label class="field-label" for="chunkDocId">文档ID（doc_id）</label>
+            <input id="chunkDocId" class="field-input" type="number" min="1" placeholder="请输入 docId" required />
+            <label class="field-label" for="chunkKbId">知识库ID（kbId）</label>
+            <input id="chunkKbId" class="field-input" type="number" min="1" placeholder="请输入 kbId" required />
+            <label class="field-label" for="chunkStrategy">分块策略（chuckStrategy）</label>
+            <input id="chunkStrategy" class="field-input" type="number" min="0" step="1" value="0" required />
+            <button type="submit" class="btn-primary">开始分块</button>
+          </form>
+        </section>
+
+        <section class="step-block">
+          <h2>执行日志</h2>
+          <div id="opLog" class="op-log"></div>
+        </section>
+      </main>
+    </div>
+    <div id="toast" class="toast" hidden></div>
+  </body>
+</html>

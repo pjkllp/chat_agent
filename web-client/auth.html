@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAG 智能问答 - 登录</title>
+    <script type="module" src="/src/auth.js"></script>
+  </head>
+  <body>
+    <div class="bg-fx" aria-hidden="true">
+      <div class="bg-glow"></div>
+      <div class="particle-layer" id="particleLayer"></div>
+    </div>
+    <div class="auth-page">
+      <aside class="auth-side">
+        <div class="auth-brand">
+          <div class="auth-brand-icon">🤖</div>
+          <div>
+            <div class="auth-brand-title">RAG 智能问答</div>
+            <div class="auth-brand-sub">Powered by AI</div>
+          </div>
+        </div>
+        <h1 class="auth-side-title">把问题变成清晰答案</h1>
+        <p class="auth-side-desc">
+          登录后可使用深度思考、知识检索与会话历史功能。
+        </p>
+      </aside>
+
+      <main class="auth-main">
+        <section class="auth-card">
+          <div class="auth-card-top">
+            <button id="themeToggle" class="auth-theme-btn" type="button" title="切换明暗">◐</button>
+          </div>
+          <div class="mascot-wrap" id="mascotWrap" role="button" tabindex="0" aria-label="互动助手">
+            <div class="mascot" id="mascot">
+              <div class="mascot-ear left"></div>
+              <div class="mascot-ear right"></div>
+              <div class="mascot-face">
+                <div class="eye left"><span class="pupil" id="pupilLeft"></span></div>
+                <div class="eye right"><span class="pupil" id="pupilRight"></span></div>
+                <div class="mouth"></div>
+                <div class="blush left"></div>
+                <div class="blush right"></div>
+              </div>
+              <div class="mascot-body">
+                <div class="arm left"></div>
+                <div class="arm right"></div>
+              </div>
+            </div>
+            <p class="mascot-text" id="mascotText">你好呀，我来陪你完成登录～</p>
+          </div>
+          <div class="auth-tabs" role="tablist">
+            <button id="tabLogin" class="auth-tab active" type="button">登录</button>
+            <button id="tabRegister" class="auth-tab" type="button">注册</button>
+          </div>
+
+          <form id="loginForm" class="auth-form">
+            <label class="auth-label" for="loginUsername">用户名</label>
+            <input id="loginUsername" class="auth-input" placeholder="请输入用户名" />
+            <p id="loginUsernameHint" class="field-hint-row"></p>
+
+            <label class="auth-label" for="loginPassword">密码</label>
+            <input id="loginPassword" class="auth-input" type="password" placeholder="请输入密码" />
+
+            <button id="loginBtn" class="auth-btn-primary" type="submit">登录</button>
+          </form>
+
+          <form id="registerForm" class="auth-form" hidden>
+            <label class="auth-label" for="registerUsername">用户名</label>
+            <input id="registerUsername" class="auth-input" placeholder="3-32位字母数字下划线" />
+            <p id="registerUsernameHint" class="field-hint-row"></p>
+
+            <label class="auth-label" for="registerEmail">邮箱</label>
+            <input id="registerEmail" class="auth-input" type="email" placeholder="请输入邮箱" />
+
+            <label class="auth-label" for="registerPassword">密码</label>
+            <input id="registerPassword" class="auth-input" type="password" placeholder="至少6位" />
+
+            <label class="auth-label" for="registerCode">验证码</label>
+            <div class="auth-inline">
+              <input id="registerCode" class="auth-input" placeholder="请输入验证码" />
+              <button id="sendCodeBtn" class="auth-btn-secondary" type="button">发送验证码</button>
+            </div>
+
+            <button id="registerBtn" class="auth-btn-primary" type="submit">注册</button>
+          </form>
+
+          <p id="authMessage" class="auth-message"></p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

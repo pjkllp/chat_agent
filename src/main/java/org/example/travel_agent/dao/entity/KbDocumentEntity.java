@@ -55,7 +55,7 @@ public class KbDocumentEntity {
      * 文档主状态（status）。
      * 0=INIT，1=PARSED，2=CHUNKING，3=CHUNKED，4=EMBEDDING，5=VECTORIZED，6=FAILED
      */
-    private DocumentStatusEnum status;
+    private int status;
 
     /**
      * 文档是否启用。

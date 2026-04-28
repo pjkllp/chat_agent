@@ -30,4 +30,23 @@ public class ThreadPoolConfig {
         );
         return TtlExecutors.getTtlExecutor(delegate);
     }
+
+    @Bean("knowledgeExecutor")
+    public Executor knowledgeExecutor(){
+        ThreadPoolExecutor delegate = new ThreadPoolExecutor(
+                8,
+                32,
+                60L,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(1024),
+                runnable -> {
+                    Thread thread = new Thread(runnable);
+                    thread.setName("chat-async-" + thread.threadId());
+                    thread.setDaemon(true);
+                    return thread;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+        return TtlExecutors.getTtlExecutor(delegate);
+    }
 }

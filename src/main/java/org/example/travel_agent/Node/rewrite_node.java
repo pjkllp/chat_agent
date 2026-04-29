@@ -2,6 +2,7 @@ package org.example.travel_agent.Node;
 
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
+import cn.hutool.core.util.StrUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.advisor.ContextMemoryAdvisor;
@@ -38,26 +39,18 @@ public class rewrite_node implements NodeAction {
 
         String conversationId = state.value("conversationId", "");
 
-        String content = deepThinkChatClient.prompt()
+        String rewriteQuestion = deepThinkChatClient.prompt()
                 .system(classPathResource)
+                .user(originalQuestion)
                 .advisors(memoryAdvisor)
                 .advisors(advisorSpec -> advisorSpec.params(
                         Map.of(
-                                "conversationId",conversationId,
-                                "userId",userId
+                                "conversationId", conversationId,
+                                "userId", userId
                         ))
-                )
-                .user(originalQuestion)
-                .call().content();
+                ).call().content();
 
-        String rewriteQuestion= originalQuestion;
-        if (content != null) {
-            rewriteQuestion = content.isBlank()?originalQuestion:content;
-
-            log.info("改写用户问题完毕，改写后的问题:{}",rewriteQuestion);
-        }else {
-            log.info("改写失败");
-        }
+        log.info("改写用户问题完毕，改写后的问题:{}",rewriteQuestion);
 
         sseEventUtil.sendNodeStatus(state, "rewrite_node", "finish", "问题改写完成");
 

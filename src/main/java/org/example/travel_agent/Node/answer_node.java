@@ -34,6 +34,12 @@ public class answer_node implements NodeAction {
         sseEventUtil.sendNodeStatus(state, "answer_node", "start", "开始生成最终答案");
 
         String summaryPrompt = state.value("summary_prompt", "");
+
+        String originalQuestion = state.value("original_question", "");
+
+        String rewriteQuestion = state.value("rewrite_question", "");
+
+
         if (summaryPrompt == null || summaryPrompt.isBlank()) {
             summaryPrompt = state.value("rewrite_question", state.value("original_question", ""));
         }
@@ -55,7 +61,8 @@ public class answer_node implements NodeAction {
                             )
                     ))
                     .system(classPathResource)
-                    .user(summaryPrompt)
+                    .system(summaryPrompt)
+                    .user(originalQuestion)
                     .stream()
                     .content()
                     .doOnNext(data -> {

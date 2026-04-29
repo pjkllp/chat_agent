@@ -42,12 +42,13 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
             return callAdvisorChain.nextCall(chatClientRequest);
         }
 
+        List<UserMessage> userMessages = chatClientRequest.prompt().getUserMessages();
+
         ChatClientRequest requestWithHistory = appendHistoryToRequest(chatClientRequest,userId,conversationId);
 
         ChatClientResponse chatClientResponse = callAdvisorChain.nextCall(requestWithHistory);
 
         //等大模型消息回来之后连同用户消息和大模型消息一起存进redis
-        List<UserMessage> userMessages = requestWithHistory.prompt().getUserMessages();
 
         List<AssistantMessage> assistantMessages = Objects.requireNonNull(chatClientResponse.chatResponse())
                 .getResults()

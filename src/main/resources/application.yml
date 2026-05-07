@@ -10,7 +10,6 @@ spring:
       port: 6379
       password: 123456
       database: 1
-      # 2核4G服务器Redis连接池配置（Lettuce）
       lettuce:
         pool:
           max-active: 20

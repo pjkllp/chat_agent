@@ -25,7 +25,7 @@ public class ChatServiceImpl implements ChatService {
     private final CompiledGraph deepThinkGraph;
 
     private final SseEmitterRegistry sseEmitterRegistry;
-    @Qualifier("chatAsyncExecutor")
+
     private final Executor chatAsyncExecutor;
 
     @Override

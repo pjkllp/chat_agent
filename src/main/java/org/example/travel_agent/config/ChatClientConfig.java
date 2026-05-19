@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class ChatClientConfig {
 
     @Bean
-    public ChatClient deepThinkChatClient(ChatModel chatModel) {
+    public ChatClient chatClient(ChatModel chatModel) {
         return ChatClient.builder(chatModel)
             .defaultOptions(
                 ChatOptions.builder()

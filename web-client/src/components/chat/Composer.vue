@@ -43,6 +43,6 @@ function send() {
   const q = text.value.trim();
   if (!q || store.streaming) return;
   text.value = "";
-  emit("send", q);
+  emit("send", q, deepThink.value);
 }
 </script>

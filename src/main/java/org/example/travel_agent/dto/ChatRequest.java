@@ -9,10 +9,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DeepThinkRequest {
+public class ChatRequest {
 
     private String question;
 
     private String conversationId;
+
+    private int isDeepThink;
 
 }

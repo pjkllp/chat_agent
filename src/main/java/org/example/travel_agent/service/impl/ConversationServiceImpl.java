@@ -66,7 +66,7 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     public List<AiChatMemoryEntity> getMessages(Long userId, String conversationId) {
-        return llmMemory.getMemory(userId, conversationId, Integer.MAX_VALUE);
+        return llmMemory.getMemory(userId, conversationId, -1);
     }
 
     @Override

@@ -51,9 +51,9 @@ function handleKeydown(e) {
   }
 }
 
-function handleSend(text) {
+function handleSend(text, deepThink) {
   if (!text.trim() || store.streaming) return;
-  store.sendQuestion(text.trim(), true);
+  store.sendQuestion(text.trim(), deepThink);
   nextTick(() => scrollToBottom());
 }
 

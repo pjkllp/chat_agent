@@ -3,7 +3,7 @@ package org.example.travel_agent.advisor;
 import lombok.RequiredArgsConstructor;
 import org.example.travel_agent.dao.entity.AiChatMemoryEntity;
 import org.example.travel_agent.common.MessageConvertUtil;
-import org.example.travel_agent.store.Store;
+import org.example.travel_agent.memory.LLMMemory;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -28,7 +28,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
 
-    private final Store redisStore;
+    private final LLMMemory llmMemory;
 
     @Value("${memory.history.len:10}")
     public int MAX_HISTORY;
@@ -59,7 +59,7 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
         ArrayList<Message> messages = new ArrayList<>();
         messages.addAll(userMessages);
         messages.addAll(assistantMessages);
-        redisStore.append(MessageConvertUtil.toEntities(messages, userId, conversationId),userId,conversationId);
+        llmMemory.save(MessageConvertUtil.toEntities(messages, userId, conversationId), userId, conversationId);
         return chatClientResponse;
     }
 
@@ -92,7 +92,7 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
                     if (!assistantBuffer.isEmpty()) {
                         messages.add(new AssistantMessage(assistantBuffer.toString()));
                     }
-                    redisStore.append(MessageConvertUtil.toEntities(messages, userId, conversationId),userId,conversationId);
+                    llmMemory.save(MessageConvertUtil.toEntities(messages, userId, conversationId), userId, conversationId);
                 });
     }
 
@@ -108,7 +108,7 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
     }
 
     private ChatClientRequest appendHistoryToRequest(ChatClientRequest chatClientRequest,long userId,String conversationId) {
-        List<AiChatMemoryEntity> records = redisStore.load(userId,conversationId,MAX_HISTORY);
+        List<AiChatMemoryEntity> records = llmMemory.getMemory(userId, conversationId, MAX_HISTORY);
         List<Message> historyMessages = MessageConvertUtil.toMessages(records);
         if (historyMessages.isEmpty()) {
             return chatClientRequest;

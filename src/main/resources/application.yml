@@ -23,7 +23,7 @@ spring:
     username: postgres
     password: 123456
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:15432/your_db?serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:postgresql://localhost:15432/ReactAgent?serverTimezone=Asia/Shanghai&useSSL=false
   ai:
     dashscope:
       api-key: ${BAILIAN_API_KEY:}

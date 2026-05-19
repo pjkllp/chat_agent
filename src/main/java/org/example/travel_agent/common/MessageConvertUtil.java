@@ -6,7 +6,7 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,7 +53,7 @@ public final class MessageConvertUtil {
             entity.setUserId(safeUserId);
             entity.setConversationId(safeConversationId);
             entity.setContent(message.getText());
-            entity.setCreateTime(LocalDateTime.now());
+            entity.setCreateTime(OffsetDateTime.now());
 
             if (message instanceof UserMessage) {
                 entity.setMessageType("USER");

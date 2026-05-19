@@ -3,7 +3,7 @@ package org.example.travel_agent.advisor;
 import lombok.RequiredArgsConstructor;
 import org.example.travel_agent.dao.entity.AiChatMemoryEntity;
 import org.example.travel_agent.common.MessageConvertUtil;
-import org.example.travel_agent.store.Store;
+import org.example.travel_agent.memory.LLMMemory;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -24,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ContextMemoryAdvisor implements CallAdvisor, StreamAdvisor {
 
-    private final Store redisStore;
+    private final LLMMemory llmMemory;
 
     @Value("${memory.history.len:10}")
     public int MAX_HISTORY;
@@ -38,7 +38,7 @@ public class ContextMemoryAdvisor implements CallAdvisor, StreamAdvisor {
             return callAdvisorChain.nextCall(chatClientRequest);
         }
 
-        List<AiChatMemoryEntity> records = redisStore.load(userId,conversationId,MAX_HISTORY);
+        List<AiChatMemoryEntity> records = llmMemory.getMemory(userId, conversationId, MAX_HISTORY);
         List<Message> historyMessages = MessageConvertUtil.toMessages(records);
         if (historyMessages.isEmpty()) {
             return callAdvisorChain.nextCall(chatClientRequest);
@@ -61,7 +61,7 @@ public class ContextMemoryAdvisor implements CallAdvisor, StreamAdvisor {
             return streamAdvisorChain.nextStream(chatClientRequest);
         }
         long userId = (long)chatClientRequest.context().get("userId");
-        List<AiChatMemoryEntity> records = redisStore.load(userId,conversationId,MAX_HISTORY);
+        List<AiChatMemoryEntity> records = llmMemory.getMemory(userId, conversationId, MAX_HISTORY);
         List<Message> historyMessages = MessageConvertUtil.toMessages(records);
         if (historyMessages.isEmpty()) {
             return streamAdvisorChain.nextStream(chatClientRequest);

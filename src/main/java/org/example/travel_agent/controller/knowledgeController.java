@@ -5,7 +5,6 @@ import io.minio.errors.*;
 import lombok.SneakyThrows;
 import org.apache.tika.exception.TikaException;
 import org.example.travel_agent.Exceptions.ClientException;
-import org.example.travel_agent.dao.entity.KbDocumentEntity;
 import org.example.travel_agent.dto.Result;
 import org.example.travel_agent.dto.knowledge.*;
 import org.example.travel_agent.service.KnowledgeService;
@@ -16,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 @RestController

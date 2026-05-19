@@ -30,7 +30,7 @@ public class LLMMemoryImpl implements LLMMemory {
 
     @Override
     public List<AiChatMemoryEntity> getMemory(Long userId, String conversationId, int count) {
-        List<AiChatMemoryEntity> messages = redisStore.load(userId, conversationId, count);
+        List<AiChatMemoryEntity> messages = redisStore.load(userId, conversationId, count==0?-1:count);
         if (messages == null || messages.isEmpty()) {
             messages = pgsqlStore.load(userId, conversationId, count);
             if (messages != null && !messages.isEmpty()) {

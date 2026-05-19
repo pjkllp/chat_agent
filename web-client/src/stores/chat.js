@@ -66,7 +66,7 @@ export const useChatStore = defineStore("chat", {
       if (this.streaming) return;
       this.streaming = true;
       this.messages.push({ role: "user", content: question });
-      this.messages.push({ role: "assistant", content: "", streaming: true });
+      this.messages.push({ role: "assistant", content: "", streaming: true, thinkingSteps: [] });
       this.workflowSteps = [];
       if (this.title === "新对话") {
         this.title = question.slice(0, 50);
@@ -76,11 +76,23 @@ export const useChatStore = defineStore("chat", {
       const convId = this.conversationId;
 
       sse.connect(
-        "/api/chat/deepThink",
-        { question, conversationId: convId },
+        "/api/chat/chat",
+        { question, conversationId: convId, isDeepThink: deepThink ? 1 : 0 },
         {
+          onMessage: (data) => {
+            // Non-deepThink path: plain text chunks from simple chat
+            const last = this.messages[this.messages.length - 1];
+            if (last && last.role === "assistant" && last.streaming) {
+              last.content += data;
+            }
+          },
           onWorkflow: (data) => {
             this.workflowSteps.push(data);
+            // Update the assistant message's thinking steps reactively
+            const last = this.messages[this.messages.length - 1];
+            if (last && last.role === "assistant") {
+              last.thinkingSteps = [...this.workflowSteps];
+            }
           },
           onAnswer: (chunk) => {
             const last = this.messages[this.messages.length - 1];

@@ -54,7 +54,7 @@ public class RedisStore implements Store {
         String hashKey = String.format(HASH_USER_CONVERSATION_KEY, userId, conversationId);
 
         Long total = stringRedisTemplate.opsForZSet().size(zsetKey);
-
+        count= Math.toIntExact(count == -1 ? total : count);
         if (total == null || total == 0) {
             return loadFromPgAndCache(userId, conversationId, count, zsetKey, hashKey);
         }

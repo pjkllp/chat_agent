@@ -41,9 +41,9 @@ public interface AiChatMemoryMapper extends BaseMapper<AiChatMemoryEntity> {
 
 
     @Select("""
-select id, conversation_id, user_id, role, content, create_time
+select *
 from t_ai_chat_memory
-where userId=#{userId} and conversation_id=#{conversationId}
+where user_id=#{userId} and conversation_id=#{conversationId}
 order by create_time DESC
 """)
     List<AiChatMemoryEntity> listByUserAndConversation(long userId, String conversationId);

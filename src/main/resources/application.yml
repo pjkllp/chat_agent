@@ -2,6 +2,9 @@ server:
   port: 10009
 
 spring:
+  jackson:
+    generator:
+      write-numbers-as-strings: true
   application:
     name: ReactAgent
   data:
@@ -20,7 +23,7 @@ spring:
     username: postgres
     password: 123456
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:15432/ReactAgent?currentSchema=public
+    url: jdbc:postgresql://localhost:15432/your_db?serverTimezone=Asia/Shanghai&useSSL=false
   ai:
     dashscope:
       api-key: ${BAILIAN_API_KEY:}
@@ -70,6 +73,10 @@ jina:
 memory:
   history:
     len: 10
+  sync:
+    cron: "0 0 2 * * ?"
+    batch-size: 500
+    enabled: true
 rustfs:
   endpoint: http://127.0.0.1:9005
   access-key: ${RUSTFS_ACCESS_KEY:rustfsadmin}

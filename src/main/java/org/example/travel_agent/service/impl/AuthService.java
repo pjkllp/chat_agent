@@ -132,7 +132,16 @@ public class AuthService {
     }
 
     public Boolean verifyUsername(String username) {
-        return usernameRBloomFilter.contains(username);
+        if (usernameRBloomFilter.contains(username)) {
+            return true;
+        }
+        UserEntity user = userMapper.selectOne(
+                Wrappers.lambdaQuery(UserEntity.class).eq(UserEntity::getUsername, username));
+        if (user != null) {
+            usernameRBloomFilter.add(username);
+            return true;
+        }
+        return false;
     }
 
 }

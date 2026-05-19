@@ -7,9 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.advisor.PersistMemoryAdvisor;
 import org.example.travel_agent.common.SseEventUtil;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.content.Media;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.MimeTypeUtils;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -38,8 +42,6 @@ public class answer_node implements NodeAction {
         String originalQuestion = state.value("original_question", "");
 
         String rewriteQuestion = state.value("rewrite_question", "");
-
-
         if (summaryPrompt == null || summaryPrompt.isBlank()) {
             summaryPrompt = state.value("rewrite_question", state.value("original_question", ""));
         }

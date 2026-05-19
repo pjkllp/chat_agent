@@ -6,7 +6,11 @@ import java.util.List;
 
 public interface Store {
 
-    void append(List<AiChatMemoryEntity> messages,long userId,String conversationId);
+    void append(List<AiChatMemoryEntity> messages, long userId, String conversationId);
 
-    List<AiChatMemoryEntity> load(long userId,String conversationId,int count);
+    List<AiChatMemoryEntity> load(long userId, String conversationId, int count);
+
+    void delete(long userId, String conversationId);
+
+    List<String> listUserConversationIds(Long userId);
 }

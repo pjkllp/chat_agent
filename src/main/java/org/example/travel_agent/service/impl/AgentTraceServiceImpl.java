@@ -10,6 +10,7 @@ import org.example.travel_agent.dao.mapper.AgentTraceMapper;
 import org.example.travel_agent.dto.trace.ConversationTraceVO;
 import org.example.travel_agent.dto.trace.NodeTraceStep;
 import org.example.travel_agent.dto.trace.TraceDetailVO;
+import org.example.travel_agent.dto.trace.TraceStatsVO;
 import org.example.travel_agent.service.AgentTraceService;
 import org.springframework.stereotype.Service;
 
@@ -96,23 +97,36 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
 
     @Override
     public Page<ConversationTraceVO> listConversations(Long userId, int current, int size) {
-        List<ConversationTraceVO> allRecords = this.baseMapper.selectConversationsByUser(userId);
         Page<ConversationTraceVO> page = new Page<>(current, size);
-        page.setTotal(allRecords.size());
-        int fromIndex = (current - 1) * size;
-        int toIndex = Math.min(fromIndex + size, allRecords.size());
-        if (fromIndex >= allRecords.size()) {
-            page.setRecords(List.of());
-        } else {
-            page.setRecords(allRecords.subList(fromIndex, toIndex));
-        }
-        page.setPages((long) Math.ceil((double) allRecords.size() / size));
+        page.setTotal(this.baseMapper.countConversationsByUser(userId));
+        List<ConversationTraceVO> records = this.baseMapper.selectConversationsByUser(userId, page);
+        page.setRecords(records);
         return page;
     }
 
     @Override
     public TraceDetailVO getTraceDetail(String conversationId) {
         List<AgentTraceEntity> entities = this.baseMapper.findByConversationId(conversationId);
+    }
+
+    @Override
+    public TraceStatsVO getTraceStats(Long userId) {
+        TraceStatsVO stats = this.baseMapper.selectStatsByUser(userId);
+        if (stats == null) {
+            return TraceStatsVO.builder()
+                    .totalConversations(0)
+                    .errorConversations(0)
+                    .errorRate("0%")
+                    .avgDuration(0.0)
+                    .totalNodes(0)
+                    .errorNodes(0)
+                    .build();
+        }
+        long total = stats.getTotalConversations();
+        long errors = stats.getErrorConversations();
+        stats.setErrorRate(total > 0 ? String.format("%.1f%%", errors * 100.0 / total) : "0%");
+        return stats;
+    }
         List<NodeTraceStep> steps = entities.stream()
                 .map(e -> NodeTraceStep.builder()
                         .nodeName(e.getNodeName())

@@ -9,3 +9,7 @@ export function fetchTraceConversations(current = 1, size = 10) {
 export function fetchTraceDetail(conversationId) {
   return get(`${BASE}/${conversationId}`);
 }
+
+export function fetchTraceStats() {
+  return get(`${BASE}/stats`);
+}

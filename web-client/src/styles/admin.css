@@ -1,5 +1,5 @@
 /* Admin styles */
-.build-shell { width: 100%; }
+.build-shell { flex: 1; width: 100%; }
 
 .layout-shell { min-height: 100vh; display: grid; grid-template-columns: 238px 1fr; }
 
@@ -185,10 +185,54 @@ body.theme-dark .field-input { background: #212d44; color: #eef3ff; border-color
 .trace-step-error { margin-top: 6px; font-size: 12px; color: #cc3d3d; background: #ffecec; border-radius: 6px; padding: 6px 8px; }
 body.theme-dark .trace-step-error { color: #ffd0d0; background: #5b2c35; }
 
+/* Stats dashboard */
+.trace-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  text-align: center;
+}
+.stat-card.warn { border-color: #f59e0b; }
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+.stat-card.warn .stat-value { color: #f59e0b; }
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Landscape modal */
+.modal-panel-landscape {
+  width: 92vw;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.modal-body-landscape {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  min-height: 0;
+}
+
 .err-cell { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 @media (max-width: 760px) {
   .layout-shell { grid-template-columns: 1fr; }
   .admin-sidebar { display: none; }
   .upload-inline { grid-template-columns: 1fr; }
+  .trace-stats { grid-template-columns: repeat(2, 1fr); }
 }

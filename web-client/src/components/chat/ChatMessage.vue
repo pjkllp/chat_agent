@@ -23,10 +23,10 @@
       <div v-if="msg.streaming" class="thinking-loading">...</div>
     </div>
     <!-- Answer content -->
-    <div
-      v-if="msg.content"
-      class="msg-bubble"
-    >{{ msg.content }}</div>
+    <div class="msg-bubble" :class="{ 'bubble-empty': msg.streaming && !msg.content }">
+      <template v-if="msg.content">{{ msg.content }}</template>
+      <template v-else-if="msg.streaming"><span class="streaming-cursor">▍</span></template>
+    </div>
   </div>
 </template>
 

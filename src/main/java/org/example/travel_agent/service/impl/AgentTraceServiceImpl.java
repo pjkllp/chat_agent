@@ -107,6 +107,21 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
     @Override
     public TraceDetailVO getTraceDetail(String conversationId) {
         List<AgentTraceEntity> entities = this.baseMapper.findByConversationId(conversationId);
+        List<NodeTraceStep> steps = entities.stream()
+                .map(e -> NodeTraceStep.builder()
+                        .nodeName(e.getNodeName())
+                        .status(e.getStatus())
+                        .startTime(e.getStartTime())
+                        .endTime(e.getEndTime())
+                        .duration(e.getDuration())
+                        .resultData(e.getResultData())
+                        .errorMessage(e.getErrorMessage())
+                        .build())
+                .collect(Collectors.toList());
+        return TraceDetailVO.builder()
+                .conversationId(conversationId)
+                .steps(steps)
+                .build();
     }
 
     @Override
@@ -126,21 +141,5 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
         long errors = stats.getErrorConversations();
         stats.setErrorRate(total > 0 ? String.format("%.1f%%", errors * 100.0 / total) : "0%");
         return stats;
-    }
-        List<NodeTraceStep> steps = entities.stream()
-                .map(e -> NodeTraceStep.builder()
-                        .nodeName(e.getNodeName())
-                        .status(e.getStatus())
-                        .startTime(e.getStartTime())
-                        .endTime(e.getEndTime())
-                        .duration(e.getDuration())
-                        .resultData(e.getResultData())
-                        .errorMessage(e.getErrorMessage())
-                        .build())
-                .collect(Collectors.toList());
-        return TraceDetailVO.builder()
-                .conversationId(conversationId)
-                .steps(steps)
-                .build();
     }
 }

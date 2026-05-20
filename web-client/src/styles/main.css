@@ -110,6 +110,7 @@ body.theme-dark .particle-layer { opacity: 1; }
   position: relative;
   z-index: 1;
   display: flex;
+  width: 100%;
   height: 100vh;
   overflow: hidden;
 }
@@ -440,6 +441,7 @@ body.theme-dark .history-delete-btn:hover { background: #5b2c35; color: #ff8080;
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: 32px 28px 48px;
   max-width: 920px;
   margin: 0 auto;
@@ -632,9 +634,25 @@ body.theme-dark .history-delete-btn:hover { background: #5b2c35; color: #ff8080;
   background: var(--panel-bg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
+  min-width: 200px;
 }
 
 .msg.assistant.streaming .msg-bubble { border-color: var(--accent-strong); }
+.msg.assistant .msg-bubble.bubble-empty {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+}
+.streaming-cursor {
+  animation: blink-cursor 1s step-end infinite;
+  font-size: 16px;
+  color: var(--accent);
+  line-height: 1;
+}
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
 
 /* Thinking process styles for deepThink mode */
 .thinking-wrap {

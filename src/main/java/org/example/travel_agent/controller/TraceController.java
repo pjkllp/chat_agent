@@ -6,6 +6,7 @@ import org.example.travel_agent.common.UserContext;
 import org.example.travel_agent.dto.Result;
 import org.example.travel_agent.dto.trace.ConversationTraceVO;
 import org.example.travel_agent.dto.trace.TraceDetailVO;
+import org.example.travel_agent.dto.trace.TraceStatsVO;
 import org.example.travel_agent.service.AgentTraceService;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,13 @@ public class TraceController {
         Long userId = UserContext.get().getId();
         Page<ConversationTraceVO> page = agentTraceService.listConversations(userId, current, size);
         return Result.success("查询成功", page);
+    }
+
+    @GetMapping("/stats")
+    public Result<TraceStatsVO> getStats() {
+        Long userId = UserContext.get().getId();
+        TraceStatsVO stats = agentTraceService.getTraceStats(userId);
+        return Result.success("查询成功", stats);
     }
 
     @GetMapping("/{conversationId}")

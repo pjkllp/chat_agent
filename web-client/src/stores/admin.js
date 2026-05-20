@@ -12,6 +12,7 @@ import {
 import {
   fetchTraceConversations,
   fetchTraceDetail,
+  fetchTraceStats,
 } from "../services/trace";
 
 export const useAdminStore = defineStore("admin", {
@@ -36,6 +37,7 @@ export const useAdminStore = defineStore("admin", {
     traceTotal: 0,
     traceCurrent: 1,
     tracePages: 0,
+    traceStats: null,
     traceDetail: null,
     activeTab: "kb", // "kb" | "trace"
   }),
@@ -86,6 +88,9 @@ export const useAdminStore = defineStore("admin", {
       this.chunkPages = data?.pages || 0;
     },
     // Trace
+    async loadTraceStats() {
+      this.traceStats = await fetchTraceStats();
+    },
     async loadTraceList(page = 1, size = 10) {
       const data = await fetchTraceConversations(page, size);
       this.traceList = data?.records || [];

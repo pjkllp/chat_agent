@@ -102,8 +102,8 @@ rustfs:
   secure: false
 aliyun:
   oss:
-    endpoint: ${OSS_ENDPOINT:}
-    bucket: ${OSS_BUCKET:}
+    endpoint: ${OSS_ENDPOINT:oss-cn-hongkong.aliyuncs.com}
+    bucket: ${OSS_BUCKET:pjk-ai}
     access-key-id: ${OSS_ACCESS_KEY_ID:}
     access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
-    public-host: ${OSS_PUBLIC_HOST:}
+    public-host: ${OSS_PUBLIC_HOST:https://pjk-ai.oss-cn-hongkong.aliyuncs.com}

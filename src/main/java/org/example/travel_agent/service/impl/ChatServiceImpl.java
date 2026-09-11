@@ -41,7 +41,8 @@ public class ChatServiceImpl implements ChatService {
     private String visionModel;
 
     @Override
-    public void chatStream(ChatRequest requestParam, SseEmitter sse) {
+    public void
+    chatStream(ChatRequest requestParam, SseEmitter sse) {
 
         String originalQuestion = requestParam.getQuestion();
         String conversationId = requestParam.getConversationId();
@@ -70,7 +71,8 @@ public class ChatServiceImpl implements ChatService {
                     .system("你是一名可爱的用户助手，请帮助用户解决问题")
                     .messages(chatAttachmentSupport.buildUserMessage(originalQuestion, attachments));
             if (chatAttachmentSupport.hasImage(attachments)) {
-                promptSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).build());
+                // multiModel=true 才会走多模态端点，否则图片被发往文本端点并报 url error
+                promptSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).multiModel(true).build());
             }
             promptSpec.stream()
                     .content()

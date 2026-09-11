@@ -78,7 +78,8 @@ public class answer_node implements NodeAction {
                     .system(summaryPrompt)
                     .messages(chatAttachmentSupport.buildUserMessage(originalQuestion, attachments));
             if (chatAttachmentSupport.hasImage(attachments)) {
-                streamSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).build());
+                // multiModel=true 才会走多模态端点，否则图片被发往文本端点并报 url error
+                streamSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).multiModel(true).build());
             }
             streamSpec.stream()
                     .content()
@@ -106,7 +107,7 @@ public class answer_node implements NodeAction {
                         .system(classPathResource)
                         .messages(chatAttachmentSupport.buildUserMessage(summaryPrompt, attachments));
                 if (chatAttachmentSupport.hasImage(attachments)) {
-                    fallbackSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).build());
+                    fallbackSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).multiModel(true).build());
                 }
                 String fullAnswer = fallbackSpec.call().content();
                 if (fullAnswer != null && !fullAnswer.isBlank()) {

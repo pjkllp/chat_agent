@@ -15,6 +15,17 @@ import {
   fetchTraceStats,
 } from "../services/trace";
 
+// 后端 write-numbers-as-strings=true，数字字段都会以字符串形式返回，
+// 这里统一转回数字，避免前端 === / >= 等严格比较失效。
+function toNum(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toNullableNum(v) {
+  return v == null || v === "" ? v : Number(v);
+}
+
 export const useAdminStore = defineStore("admin", {
   state: () => ({
     // Knowledge base
@@ -46,9 +57,9 @@ export const useAdminStore = defineStore("admin", {
     async loadKb(page = 1, size = 20, kbName) {
       const data = await pageKb(kbName, null, page, size);
       this.kbList = data?.records || [];
-      this.kbTotal = data?.total || 0;
-      this.kbCurrent = data?.current || 1;
-      this.kbPages = data?.pages || 0;
+      this.kbTotal = toNum(data?.total);
+      this.kbCurrent = toNum(data?.current, 1);
+      this.kbPages = toNum(data?.pages);
     },
     async createKb(name, desc) {
       await createKb(name, desc);
@@ -58,10 +69,14 @@ export const useAdminStore = defineStore("admin", {
       if (!kbId) return;
       this.selectedKbId = kbId;
       const data = await pageDoc(kbId, null, null, page, size);
-      this.docList = data?.records || [];
-      this.docTotal = data?.total || 0;
-      this.docCurrent = data?.current || 1;
-      this.docPages = data?.pages || 0;
+      this.docList = (data?.records || []).map((d) => ({
+        ...d,
+        status: toNullableNum(d.status),
+        version: toNullableNum(d.version),
+      }));
+      this.docTotal = toNum(data?.total);
+      this.docCurrent = toNum(data?.current, 1);
+      this.docPages = toNum(data?.pages);
     },
     async uploadDoc(kbId, file) {
       await uploadDoc(kbId, file);
@@ -82,10 +97,13 @@ export const useAdminStore = defineStore("admin", {
     async loadChunks(page = 1, size = 20, kbId, docId) {
       this.selectedDocId = docId;
       const data = await pageChunk(kbId, docId, null, null, page, size);
-      this.chunkList = data?.records || [];
-      this.chunkTotal = data?.total || 0;
-      this.chunkCurrent = data?.current || 1;
-      this.chunkPages = data?.pages || 0;
+      this.chunkList = (data?.records || []).map((c) => ({
+        ...c,
+        chunkNo: toNullableNum(c.chunkNo),
+      }));
+      this.chunkTotal = toNum(data?.total);
+      this.chunkCurrent = toNum(data?.current, 1);
+      this.chunkPages = toNum(data?.pages);
     },
     // Trace
     async loadTraceStats() {
@@ -94,9 +112,9 @@ export const useAdminStore = defineStore("admin", {
     async loadTraceList(page = 1, size = 10) {
       const data = await fetchTraceConversations(page, size);
       this.traceList = data?.records || [];
-      this.traceTotal = data?.total || 0;
-      this.traceCurrent = data?.current || 1;
-      this.tracePages = data?.pages || 0;
+      this.traceTotal = toNum(data?.total);
+      this.traceCurrent = toNum(data?.current, 1);
+      this.tracePages = toNum(data?.pages);
     },
     async loadTraceDetail(conversationId) {
       this.traceDetail = await fetchTraceDetail(conversationId);

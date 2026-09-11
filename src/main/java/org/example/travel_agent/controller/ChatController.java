@@ -9,6 +9,7 @@ import org.example.travel_agent.dto.ConversationVO;
 import org.example.travel_agent.dto.Result;
 import org.example.travel_agent.service.ChatService;
 import org.example.travel_agent.service.ConversationService;
+import org.springframework.ai.content.Media;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -28,6 +29,8 @@ public class ChatController {
         chatService.chatStream(requestParam, sse);
         return sse;
     }
+
+
 
     @GetMapping("/conversations")
     public Result<Page<ConversationVO>> listConversations(

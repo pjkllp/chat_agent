@@ -67,7 +67,7 @@
                 <td class="cell-actions">
                   <button class="btn-action" :disabled="doc.status !== 0" @click="handleParse(doc)">解析</button>
                   <button class="btn-action" :disabled="doc.status !== 1" @click="handleChunk(doc)">分块</button>
-                  <button class="btn-action" :disabled="doc.status !== 2" @click="handleEmbed(doc)">向量化</button>
+                  <button class="btn-action" :disabled="doc.status !== 3" @click="handleEmbed(doc)">向量化</button>
                   <button class="btn-action" @click="viewChunks(doc)">查看块</button>
                 </td>
               </tr>
@@ -134,17 +134,26 @@ function formatTime(t) {
   return t.replace("T", " ").slice(0, 19);
 }
 
+// 与后端 DocumentStatusEnum 保持一致：
+// 0=INIT 1=PARSED 2=CHUNKING 3=CHUNKED 4=EMBEDDING 5=VECTORIZED 6=FAILED
 function statusText(status) {
-  const m = { 0: "待处理", 1: "已解析", 2: "已分块", 3: "已向量化", "-1": "失败" };
+  const m = {
+    0: "初始化",
+    1: "已解析",
+    2: "切块中",
+    3: "已切块",
+    4: "向量化中",
+    5: "已向量化",
+    6: "失败",
+  };
   return m[status] || "未知";
 }
 
 function statusClass(status) {
-  if (status === -1) return "danger";
-  if (status === 0) return "default";
-  if (status === 1) return "info";
-  if (status === 2) return "warning";
-  if (status === 3) return "success";
+  if (status === 6) return "danger";
+  if (status === 2 || status === 4) return "warning";
+  if (status === 5) return "success";
+  if (status === 1 || status === 3) return "info";
   return "default";
 }
 

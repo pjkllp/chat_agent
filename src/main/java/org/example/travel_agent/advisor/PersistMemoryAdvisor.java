@@ -43,7 +43,6 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
         }
 
         List<UserMessage> userMessages = chatClientRequest.prompt().getUserMessages();
-
         ChatClientRequest requestWithHistory = appendHistoryToRequest(chatClientRequest,userId,conversationId);
 
         ChatClientResponse chatClientResponse = callAdvisorChain.nextCall(requestWithHistory);

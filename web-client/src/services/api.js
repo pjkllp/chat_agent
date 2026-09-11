@@ -57,9 +57,10 @@ export function upload(url, formData) {
   const headers = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   return fetch(url, { method: "POST", body: formData, headers }).then(async (res) => {
-    if (!res.ok) throw new Error(`上传失败: ${res.status}`);
     const payload = await res.json().catch(() => ({}));
-    if (payload && typeof payload === "object" && "code" in payload && payload.code !== 1) {
+    if (!res.ok) throw new Error(payload?.msg || `上传失败: ${res.status}`);
+    // 后端 write-numbers-as-strings=true，code 是字符串 "1"，这里必须宽松比较
+    if (payload && typeof payload === "object" && "code" in payload && payload.code != 1) {
       throw new Error(payload.msg || "上传失败");
     }
     return payload?.data;

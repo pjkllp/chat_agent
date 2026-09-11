@@ -1,17 +1,22 @@
 package org.example.travel_agent.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.graph.CompiledGraph;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.common.SseEmitterRegistry;
 import org.example.travel_agent.common.UserContext;
+import org.example.travel_agent.dto.ChatAttachmentDTO;
 import org.example.travel_agent.dto.ChatRequest;
+import org.example.travel_agent.service.ChatAttachmentSupport;
 import org.example.travel_agent.service.ChatService;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -29,6 +34,11 @@ public class ChatServiceImpl implements ChatService {
 
     private final ChatClient chatClient;
 
+    private final ChatAttachmentSupport chatAttachmentSupport;
+
+    @Value("${app.chat.vision-model:qwen-vl-max}")
+    private String visionModel;
+
     @Override
     public void chatStream(ChatRequest requestParam, SseEmitter sse) {
 
@@ -40,13 +50,22 @@ public class ChatServiceImpl implements ChatService {
                 conversationId: IdUtil.getSnowflakeNextIdStr();
         String finalConversationId=conversationId;
 
+        List<ChatAttachmentDTO> attachments = requestParam.getAttachments();
+        chatAttachmentSupport.validate(attachments);
+
         sseEmitterRegistry.put(conversationId, sse);
+        sse.onCompletion(() -> sseEmitterRegistry.remove(finalConversationId));
+        sse.onTimeout(() -> sseEmitterRegistry.remove(finalConversationId));
+        sse.onError((ex) -> sseEmitterRegistry.remove(finalConversationId));
 
         if(isDeepThink!=1){
-            chatClient.prompt()
+            ChatClient.ChatClientRequestSpec promptSpec = chatClient.prompt()
                     .system("你是一名可爱的用户助手，请帮助用户解决问题")
-                    .user(originalQuestion)
-                    .stream()
+                    .messages(chatAttachmentSupport.buildUserMessage(originalQuestion, attachments));
+            if (chatAttachmentSupport.hasImage(attachments)) {
+                promptSpec.options(DashScopeChatOptions.builder().model(visionModel).build());
+            }
+            promptSpec.stream()
                     .content()
                     .doOnNext(content -> {
                         try {
@@ -65,11 +84,9 @@ public class ChatServiceImpl implements ChatService {
                         sse.completeWithError(e);
                         sseEmitterRegistry.remove(finalConversationId);
                     }).subscribe();
+            return;
         }
 
-        sse.onCompletion(() -> sseEmitterRegistry.remove(finalConversationId));
-        sse.onTimeout(() -> sseEmitterRegistry.remove(finalConversationId));
-        sse.onError((ex) -> sseEmitterRegistry.remove(finalConversationId));
         CompletableFuture.runAsync(() -> {
             try {
                 log.info("[deepThink] start invoke, conversationId={}, userId={}", finalConversationId, userId);
@@ -77,7 +94,8 @@ public class ChatServiceImpl implements ChatService {
                         Map.of(
                                 "original_question", originalQuestion,
                                 "conversationId", finalConversationId,
-                                "userId",userId
+                                "userId",userId,
+                                "attachments", attachments == null ? List.of() : attachments
                         )
                 );
                 log.info("[deepThink] invoke finished, conversationId={}", finalConversationId);

@@ -92,14 +92,16 @@ class ChatAttachmentSupportTest {
 
     @Test
     void rejectsNonHttpSchemeWithMatchingHost() {
-        var s = support("b.oss.example.com");
+        // 白名单含 scheme，expectedHost 非空，从而真正走到 isAllowedUrl 的 scheme 校验分支。
+        var s = support(PUBLIC_HOST);
         assertThatThrownBy(() -> s.validate(List.of(img("file://b.oss.example.com/x.jpg"))))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void rejectsRelativePath() {
-        var s = support("b.oss.example.com");
+        // 白名单含 scheme，expectedHost 非空；相对路径 scheme 为 null，被 scheme 分支拒绝。
+        var s = support(PUBLIC_HOST);
         assertThatThrownBy(() -> s.validate(List.of(img("/x.jpg"))))
                 .isInstanceOf(IllegalArgumentException.class);
     }

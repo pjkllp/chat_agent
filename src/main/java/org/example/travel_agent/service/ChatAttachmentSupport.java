@@ -1,6 +1,7 @@
 package org.example.travel_agent.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.travel_agent.Exceptions.ClientException;
 import org.example.travel_agent.dto.ChatAttachmentDTO;
 import org.springframework.ai.audio.transcription.TranscriptionModel;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -30,20 +31,20 @@ public class ChatAttachmentSupport {
         this.maxAttachments = maxAttachments;
     }
 
-    public void validate(List<ChatAttachmentDTO> attachments) {
+    public void validate(List<ChatAttachmentDTO> attachments) throws ClientException {
         if (attachments == null || attachments.isEmpty()) {
             return;
         }
         if (attachments.size() > maxAttachments) {
-            throw new IllegalArgumentException("单条消息最多 " + maxAttachments + " 个附件");
+            throw new ClientException("单条消息最多 " + maxAttachments + " 个附件");
         }
         String expectedHost = hostOf(ossPublicHost);
         if (expectedHost.isEmpty()) {
-            throw new IllegalArgumentException("附件地址不合法");
+            throw new ClientException("附件地址不合法");
         }
         for (ChatAttachmentDTO a : attachments) {
             if (a == null || a.getUrl() == null || !isAllowedUrl(a.getUrl(), expectedHost)) {
-                throw new IllegalArgumentException("附件地址不合法");
+                throw new ClientException("附件地址不合法");
             }
         }
     }
@@ -94,11 +95,13 @@ public class ChatAttachmentSupport {
     /** 构建最终发给模型的 UserMessage：音频转写并入文本，图片作为 Media(URL)。 */
     public UserMessage buildUserMessage(String question, List<ChatAttachmentDTO> attachments) {
         String text = question == null ? "" : question;
+        //解析音频
         String transcript = transcribeAudios(attachments);
         if (!transcript.isBlank()) {
             text = text.isBlank() ? transcript : text + "\n" + transcript;
         }
 
+        //解析图片
         List<Media> media = new ArrayList<>();
         if (attachments != null) {
             for (ChatAttachmentDTO a : attachments) {

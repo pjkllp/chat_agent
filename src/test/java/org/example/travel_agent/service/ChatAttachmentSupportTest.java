@@ -1,5 +1,6 @@
 package org.example.travel_agent.service;
 
+import org.example.travel_agent.Exceptions.ClientException;
 import org.example.travel_agent.dto.ChatAttachmentDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.audio.transcription.TranscriptionModel;
@@ -39,7 +40,7 @@ class ChatAttachmentSupportTest {
     }
 
     @Test
-    void acceptsCountWithinLimit() {
+    void acceptsCountWithinLimit() throws Exception {
         var s = support(PUBLIC_HOST);
         s.validate(List.of(
                 img("https://b.oss.example.com/chat/c/1.jpg"),
@@ -56,7 +57,7 @@ class ChatAttachmentSupportTest {
                 img("https://b.oss.example.com/4.jpg"),
                 img("https://b.oss.example.com/5.jpg"));
         assertThatThrownBy(() -> s.validate(list))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ClientException.class)
                 .hasMessageContaining("最多");
     }
 
@@ -64,7 +65,7 @@ class ChatAttachmentSupportTest {
     void rejectsForeignHost() {
         var s = support(PUBLIC_HOST);
         assertThatThrownBy(() -> s.validate(List.of(img("https://evil.example.com/x.jpg"))))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ClientException.class);
     }
 
     @Test
@@ -74,7 +75,7 @@ class ChatAttachmentSupportTest {
     }
 
     @Test
-    void emptyAttachmentsPassThrough() {
+    void emptyAttachmentsPassThrough() throws Exception {
         var s = support(PUBLIC_HOST);
         s.validate(null);
         assertThat(s.hasImage(null)).isFalse();
@@ -86,7 +87,7 @@ class ChatAttachmentSupportTest {
     void failsClosedWhenPublicHostBlank() {
         var s = support("");
         assertThatThrownBy(() -> s.validate(List.of(img("https://b.oss.example.com/x.jpg"))))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ClientException.class)
                 .hasMessageContaining("不合法");
     }
 
@@ -95,7 +96,7 @@ class ChatAttachmentSupportTest {
         // 白名单含 scheme，expectedHost 非空，从而真正走到 isAllowedUrl 的 scheme 校验分支。
         var s = support(PUBLIC_HOST);
         assertThatThrownBy(() -> s.validate(List.of(img("file://b.oss.example.com/x.jpg"))))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ClientException.class);
     }
 
     @Test
@@ -103,7 +104,7 @@ class ChatAttachmentSupportTest {
         // 白名单含 scheme，expectedHost 非空；相对路径 scheme 为 null，被 scheme 分支拒绝。
         var s = support(PUBLIC_HOST);
         assertThatThrownBy(() -> s.validate(List.of(img("/x.jpg"))))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ClientException.class);
     }
 
     // ---- transcribeAudios ----

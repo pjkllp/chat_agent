@@ -5,6 +5,7 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.graph.CompiledGraph;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.travel_agent.Exceptions.ClientException;
 import org.example.travel_agent.common.SseEmitterRegistry;
 import org.example.travel_agent.common.UserContext;
 import org.example.travel_agent.dto.ChatAttachmentDTO;
@@ -51,7 +52,13 @@ public class ChatServiceImpl implements ChatService {
         String finalConversationId=conversationId;
 
         List<ChatAttachmentDTO> attachments = requestParam.getAttachments();
-        chatAttachmentSupport.validate(attachments);
+        try {
+            chatAttachmentSupport.validate(attachments);
+        } catch (ClientException e) {
+            log.warn("[chatStream] invalid attachments, conversationId={}, msg={}", finalConversationId, e.getMessage());
+            sse.completeWithError(e);
+            return;
+        }
 
         sseEmitterRegistry.put(conversationId, sse);
         sse.onCompletion(() -> sseEmitterRegistry.remove(finalConversationId));

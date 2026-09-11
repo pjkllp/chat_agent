@@ -7,6 +7,7 @@ import com.aliyun.oss.model.ObjectMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
+import org.example.travel_agent.Exceptions.ClientException;
 import org.example.travel_agent.config.AliyunOssProperties;
 import org.example.travel_agent.dto.ChatAttachmentDTO;
 import org.example.travel_agent.service.ChatAttachmentService;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -23,20 +25,33 @@ public class AliyunOssChatAttachmentService implements ChatAttachmentService {
 
     private static final long MAX_SIZE = 20L * 1024 * 1024;
 
+    private static final Map<String, String> EXT_BY_MIME = Map.ofEntries(
+            Map.entry("image/jpeg", "jpg"),
+            Map.entry("image/png", "png"),
+            Map.entry("image/webp", "webp"),
+            Map.entry("image/gif", "gif"),
+            Map.entry("audio/mpeg", "mp3"),
+            Map.entry("audio/wav", "wav"),
+            Map.entry("audio/x-wav", "wav"),
+            Map.entry("audio/mp4", "m4a"),
+            Map.entry("audio/webm", "webm"),
+            Map.entry("audio/ogg", "ogg")
+    );
+
     private final ObjectProvider<OSS> aliyunOssClientProvider;
     private final AliyunOssProperties properties;
     private final Tika tika = new Tika();
 
     @Override
-    public ChatAttachmentDTO upload(MultipartFile file, String conversationId) {
+    public ChatAttachmentDTO upload(MultipartFile file, String conversationId) throws ClientException {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("上传文件不能为空");
+            throw new ClientException("上传文件不能为空");
         }
         if (file.getSize() > MAX_SIZE) {
-            throw new IllegalArgumentException("文件大小超过 20MB 限制");
+            throw new ClientException("文件大小超过 20MB 限制");
         }
         if (StrUtil.isBlank(conversationId)) {
-            throw new IllegalArgumentException("conversationId 不能为空");
+            throw new ClientException("conversationId 不能为空");
         }
 
         String detected;
@@ -47,13 +62,13 @@ public class AliyunOssChatAttachmentService implements ChatAttachmentService {
         }
         String type = ChatAttachmentDTO.resolveType(detected);
         if (type == null) {
-            throw new IllegalArgumentException("不支持的文件类型: " + detected);
+            throw new ClientException("不支持的文件类型: " + detected);
         }
 
-        String ext = extOf(file.getOriginalFilename(), detected);
+        String ext = extOfDetected(detected);
         String objectKey = "chat/" + conversationId + "/" + IdUtil.getSnowflakeNextIdStr() + "." + ext;
-        OSS aliyunOssClient = aliyunOssClientProvider.getObject();
         try (InputStream in = file.getInputStream()) {
+            OSS aliyunOssClient = aliyunOssClientProvider.getObject();
             ObjectMetadata meta = new ObjectMetadata();
             meta.setContentType(detected);
             meta.setContentLength(file.getSize());
@@ -73,10 +88,11 @@ public class AliyunOssChatAttachmentService implements ChatAttachmentService {
                 .build();
     }
 
-    private String extOf(String fileName, String mimeType) {
-        if (fileName != null && fileName.lastIndexOf('.') >= 0) {
-            return fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+    private static String extOfDetected(String detected) {
+        String ext = EXT_BY_MIME.get(detected.toLowerCase());
+        if (ext != null) {
+            return ext;
         }
-        return mimeType.substring(mimeType.indexOf('/') + 1);
+        return detected.substring(detected.indexOf('/') + 1);
     }
 }

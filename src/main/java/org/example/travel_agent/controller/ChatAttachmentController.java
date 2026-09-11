@@ -1,6 +1,7 @@
 package org.example.travel_agent.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.travel_agent.Exceptions.ClientException;
 import org.example.travel_agent.dto.ChatAttachmentDTO;
 import org.example.travel_agent.dto.Result;
 import org.example.travel_agent.service.ChatAttachmentService;
@@ -19,7 +20,7 @@ public class ChatAttachmentController {
 
     @PostMapping("/upload")
     public Result<ChatAttachmentDTO> upload(@RequestParam("file") MultipartFile file,
-                                            @RequestParam("conversationId") String conversationId) {
+                                            @RequestParam("conversationId") String conversationId) throws ClientException {
         ChatAttachmentDTO dto = chatAttachmentService.upload(file, conversationId);
         return Result.success("上传成功", dto);
     }

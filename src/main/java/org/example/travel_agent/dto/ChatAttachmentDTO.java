@@ -16,15 +16,19 @@ public class ChatAttachmentDTO {
     public static final String TYPE_IMAGE = "IMAGE";
     public static final String TYPE_AUDIO = "AUDIO";
 
+    // 后端按 Tika 内容检测的实际输出比对，故需同时收录 Tika 的 WAV/OGG/WebM 命名
     private static final Map<String, String> ALLOWED = Map.ofEntries(
             Map.entry("image/jpeg", TYPE_IMAGE),
             Map.entry("image/png", TYPE_IMAGE),
             Map.entry("image/webp", TYPE_IMAGE),
             Map.entry("image/gif", TYPE_IMAGE),
             Map.entry("audio/mpeg", TYPE_AUDIO),
+            Map.entry("audio/mp4", TYPE_AUDIO),
+            Map.entry("audio/vnd.wave", TYPE_AUDIO),
+            Map.entry("audio/vorbis", TYPE_AUDIO),
+            Map.entry("video/webm", TYPE_AUDIO),
             Map.entry("audio/wav", TYPE_AUDIO),
             Map.entry("audio/x-wav", TYPE_AUDIO),
-            Map.entry("audio/mp4", TYPE_AUDIO),
             Map.entry("audio/webm", TYPE_AUDIO),
             Map.entry("audio/ogg", TYPE_AUDIO)
     );

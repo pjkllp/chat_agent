@@ -23,6 +23,14 @@ class ChatAttachmentDTOTest {
         assertThat(ChatAttachmentDTO.resolveType("audio/ogg")).isEqualTo(ChatAttachmentDTO.TYPE_AUDIO);
     }
 
+    /** Tika 对 wav/ogg/webm 的内容检测结果与浏览器上报的 MIME 不同，必须同样放行。 */
+    @Test
+    void resolvesAudioMimeDetectedByTika() {
+        assertThat(ChatAttachmentDTO.resolveType("audio/vnd.wave")).isEqualTo(ChatAttachmentDTO.TYPE_AUDIO);
+        assertThat(ChatAttachmentDTO.resolveType("audio/vorbis")).isEqualTo(ChatAttachmentDTO.TYPE_AUDIO);
+        assertThat(ChatAttachmentDTO.resolveType("video/webm")).isEqualTo(ChatAttachmentDTO.TYPE_AUDIO);
+    }
+
     @Test
     void rejectsUnsupportedMime() {
         assertThat(ChatAttachmentDTO.resolveType("application/pdf")).isNull();

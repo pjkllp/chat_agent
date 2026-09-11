@@ -31,9 +31,13 @@ public class AliyunOssChatAttachmentService implements ChatAttachmentService {
             Map.entry("image/webp", "webp"),
             Map.entry("image/gif", "gif"),
             Map.entry("audio/mpeg", "mp3"),
+            Map.entry("audio/mp4", "m4a"),
+            // 以下三项是 Tika 内容检测对 wav/ogg/webm 的实际输出
+            Map.entry("audio/vnd.wave", "wav"),
+            Map.entry("audio/vorbis", "ogg"),
+            Map.entry("video/webm", "webm"),
             Map.entry("audio/wav", "wav"),
             Map.entry("audio/x-wav", "wav"),
-            Map.entry("audio/mp4", "m4a"),
             Map.entry("audio/webm", "webm"),
             Map.entry("audio/ogg", "ogg")
     );
@@ -52,6 +56,12 @@ public class AliyunOssChatAttachmentService implements ChatAttachmentService {
         }
         if (StrUtil.isBlank(conversationId)) {
             throw new ClientException("conversationId 不能为空");
+        }
+        if (StrUtil.isBlank(properties.getEndpoint())
+                || StrUtil.isBlank(properties.getBucket())
+                || StrUtil.isBlank(properties.getPublicHost())) {
+            log.error("OSS 未配置，无法上传附件：请设置 OSS_ENDPOINT / OSS_BUCKET / OSS_PUBLIC_HOST");
+            throw new ClientException("附件服务未配置，请联系管理员");
         }
 
         String detected;
@@ -75,7 +85,7 @@ public class AliyunOssChatAttachmentService implements ChatAttachmentService {
             aliyunOssClient.putObject(properties.getBucket(), objectKey, in, meta);
         } catch (Exception e) {
             log.error("OSS upload failed, file={}, msg={}", file.getOriginalFilename(), e.getMessage(), e);
-            throw new RuntimeException("上传到 OSS 失败");
+            throw new RuntimeException("上传到 OSS 失败", e);
         }
 
         String url = StrUtil.removeSuffix(properties.getPublicHost(), "/") + "/" + objectKey;

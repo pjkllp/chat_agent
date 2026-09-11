@@ -22,6 +22,15 @@
       </div>
       <div v-if="msg.streaming" class="thinking-loading">...</div>
     </div>
+    <!-- Attachments (user messages) -->
+    <div v-if="msg.attachments && msg.attachments.length" class="msg-attachments">
+      <template v-for="(a, i) in msg.attachments" :key="i">
+        <a v-if="a.type === 'IMAGE'" :href="a.url" target="_blank" rel="noopener">
+          <img :src="a.url" class="msg-attach-image" alt="" />
+        </a>
+        <audio v-else-if="a.type === 'AUDIO'" :src="a.url" controls class="msg-attach-audio"></audio>
+      </template>
+    </div>
     <!-- Answer content -->
     <div class="msg-bubble" :class="{ 'bubble-empty': msg.streaming && !msg.content }">
       <template v-if="msg.content">{{ msg.content }}</template>
@@ -33,3 +42,9 @@
 <script setup>
 defineProps({ msg: { type: Object, required: true } });
 </script>
+
+<style scoped>
+.msg-attachments { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.msg-attach-image { max-width: 200px; max-height: 200px; border-radius: 8px; display: block; }
+.msg-attach-audio { width: 260px; }
+</style>

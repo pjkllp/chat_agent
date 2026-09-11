@@ -38,10 +38,27 @@ public class ChatAttachmentSupport {
             throw new IllegalArgumentException("单条消息最多 " + maxAttachments + " 个附件");
         }
         String expectedHost = hostOf(ossPublicHost);
+        if (expectedHost.isEmpty()) {
+            throw new IllegalArgumentException("附件地址不合法");
+        }
         for (ChatAttachmentDTO a : attachments) {
-            if (a == null || a.getUrl() == null || !hostOf(a.getUrl()).equalsIgnoreCase(expectedHost)) {
+            if (a == null || a.getUrl() == null || !isAllowedUrl(a.getUrl(), expectedHost)) {
                 throw new IllegalArgumentException("附件地址不合法");
             }
+        }
+    }
+
+    /** 仅放行 scheme 为 http/https 且 host 与白名单一致的绝对 URL。 */
+    private boolean isAllowedUrl(String url, String expectedHost) {
+        try {
+            URI uri = URI.create(url);
+            String scheme = uri.getScheme();
+            if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                return false;
+            }
+            return expectedHost.equalsIgnoreCase(String.valueOf(uri.getHost()));
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -67,7 +84,7 @@ public class ChatAttachmentSupport {
                 String text = transcriptionModel.transcribe(new UrlResource(URI.create(a.getUrl())));
                 sb.append(text == null || text.isBlank() ? "[语音转写为空]" : "[语音转写] " + text);
             } catch (Exception e) {
-                log.warn("audio transcription failed, url={}, msg={}", a.getUrl(), e.getMessage());
+                log.warn("audio transcription failed, url={}", a.getUrl(), e);
                 sb.append("[语音转写失败]");
             }
         }
@@ -109,7 +126,8 @@ public class ChatAttachmentSupport {
             return "";
         }
         try {
-            return URI.create(url).getHost() == null ? "" : URI.create(url).getHost();
+            String host = URI.create(url).getHost();
+            return host == null ? "" : host;
         } catch (Exception e) {
             return "";
         }

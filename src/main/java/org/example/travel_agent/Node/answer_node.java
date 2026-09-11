@@ -1,19 +1,20 @@
 package org.example.travel_agent.Node;
 
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.advisor.PersistMemoryAdvisor;
 import org.example.travel_agent.common.SseEventUtil;
+import org.example.travel_agent.dto.ChatAttachmentDTO;
+import org.example.travel_agent.service.ChatAttachmentSupport;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.content.Media;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.MimeTypeUtils;
 
-import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -27,6 +28,11 @@ public class answer_node implements NodeAction {
     private final PersistMemoryAdvisor persistMemoryAdvisor;
 
     private final SseEventUtil sseEventUtil;
+
+    private final ChatAttachmentSupport chatAttachmentSupport;
+
+    @Value("${app.chat.vision-model:qwen-vl-max}")
+    private String visionModel;
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
@@ -52,9 +58,15 @@ public class answer_node implements NodeAction {
 
         Long userId = state.value("userId", Long.class).orElse(null);
 
+        @SuppressWarnings("unchecked")
+        List<ChatAttachmentDTO> attachments = state.value("attachments")
+                .filter(List.class::isInstance)
+                .map(v -> (List<ChatAttachmentDTO>) v)
+                .orElse(List.of());
+
         try {
             AtomicBoolean hasStreamChunk = new AtomicBoolean(false);
-            deepThinkChatClient.prompt()
+            ChatClient.ChatClientRequestSpec streamSpec = deepThinkChatClient.prompt()
                     .advisors(persistMemoryAdvisor)
                     .advisors(advisorSpec -> advisorSpec.params(
                             Map.of(
@@ -64,8 +76,11 @@ public class answer_node implements NodeAction {
                     ))
                     .system(classPathResource)
                     .system(summaryPrompt)
-                    .user(originalQuestion)
-                    .stream()
+                    .messages(chatAttachmentSupport.buildUserMessage(originalQuestion, attachments));
+            if (chatAttachmentSupport.hasImage(attachments)) {
+                streamSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).build());
+            }
+            streamSpec.stream()
                     .content()
                     .doOnNext(data -> {
                         hasStreamChunk.set(true);
@@ -80,7 +95,7 @@ public class answer_node implements NodeAction {
 
             if (!hasStreamChunk.get()) {
                 log.warn("answer_node stream produced no chunk, fallback to call().content()");
-                String fullAnswer = deepThinkChatClient.prompt()
+                ChatClient.ChatClientRequestSpec fallbackSpec = deepThinkChatClient.prompt()
                         .advisors(persistMemoryAdvisor)
                         .advisors(advisorSpec -> advisorSpec.params(
                                 Map.of(
@@ -89,9 +104,11 @@ public class answer_node implements NodeAction {
                                 )
                         ))
                         .system(classPathResource)
-                        .user(summaryPrompt)
-                        .call()
-                        .content();
+                        .messages(chatAttachmentSupport.buildUserMessage(summaryPrompt, attachments));
+                if (chatAttachmentSupport.hasImage(attachments)) {
+                    fallbackSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).build());
+                }
+                String fullAnswer = fallbackSpec.call().content();
                 if (fullAnswer != null && !fullAnswer.isBlank()) {
                     sseEventUtil.sendAnswerChunk(state, fullAnswer);
                 }

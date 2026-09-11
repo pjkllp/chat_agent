@@ -83,14 +83,15 @@ ALTER TABLE t_ai_chat_memory ADD COLUMN attachment_json text;
 ## 5. 接口
 
 ### 5.1 上传附件
-`POST /api/chat/attachment/upload`，`multipart/form-data`，字段 `file`。
+`POST /api/chat/attachment/upload`，`multipart/form-data`，字段 `file`、`conversationId`。
 
 - 校验：按 **Tika 魔数**判定真实类型（不信扩展名）；
   - 图片：jpeg / png / webp / gif
   - 音频：mp3 / wav / m4a / webm / ogg
 - 限制：单文件 ≤ 20MB；类型不合法 → 返回错误。
-- 返回：`Result<ChatAttachmentDTO>`（含公网 url）。
-- 对象键：`chat/{conversationId}/{snowflake}.{ext}`。
+- 返回：`Result<ChatAttachmentDTO>`（含公网 url），**不建立任何服务端映射表或上传会话**。
+- 对象键：`chat/{conversationId}/{snowflake}.{ext}`（`conversationId` 由前端表单传入；前端新建会话时已生成 UUID，故上传时即可提供）。
+- 关联方式：**由前端作为协调者**——上传拿到 url → 放进 5.2 的 `attachments` → 后端在该 USER 消息行落库 `attachment_json`。权威关联在 DB，不在存储层。
 
 ### 5.2 聊天请求
 `ChatRequest` 扩展：
@@ -102,7 +103,10 @@ private int isDeepThink;
 private List<ChatAttachmentDTO> attachments; // 可为空
 ```
 
-类型校验只在上传时一次性完成（按魔数）；聊天请求**信任上传结果，不再次下载校验**。仅校验 `attachments.size() ≤ 4`，超出拒绝。
+类型校验只在上传时一次性完成（按魔数）；聊天请求**信任上传结果，不再次下载校验**。但仍校验：
+
+- `attachments.size() ≤ 4`，超出拒绝。
+- 每个 `url` 的 **host 必须属于配置的 OSS 公网域名**（`aliyun.oss.public-host`），否则拒绝——防止把任意 URL 塞进来诱导模型拉取。
 
 ## 6. 模型路由（混合接入）
 

@@ -70,7 +70,7 @@ public class ChatServiceImpl implements ChatService {
                     .system("你是一名可爱的用户助手，请帮助用户解决问题")
                     .messages(chatAttachmentSupport.buildUserMessage(originalQuestion, attachments));
             if (chatAttachmentSupport.hasImage(attachments)) {
-                promptSpec.options(DashScopeChatOptions.builder().model(visionModel).build());
+                promptSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).build());
             }
             promptSpec.stream()
                     .content()

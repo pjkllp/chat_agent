@@ -33,9 +33,9 @@
 新增/改动组件：
 
 ```
-前端 Composer.vue ──上传──> POST /api/chat/attachment/upload ──> AliyunOssStorageService ──> OSS(公网桶)
+前端 Composer.vue ──(点发送)上传──> POST /api/chat/attachment/upload ──> AliyunOssStorageService ──> OSS(公网桶)
         │                                                                                     │
-        └──发消息(携带 attachments:[url...])──> POST /api/chat/chat ──> ChatServiceImpl / answer_node
+        └──上传全部成功后发消息(携带 attachments:[url...])──> POST /api/chat/chat ──> ChatServiceImpl / answer_node
                                                                                   │
                                                         ┌─────────────────────┼─────────────────────┐
                                                      有图片                有音频                 纯文本
@@ -128,17 +128,19 @@ private List<ChatAttachmentDTO> attachments; // 可为空
 
 ## 9. 前端
 
+上传时序（已确认）：**选中仅本地预览，点「发送」后再上传**。
+
 - `Composer.vue`：
   - 新增 📎 按钮 + 隐藏 `<input type="file" accept="image/*,audio/*" multiple>`。
-  - 选中即上传，展示可删除的 chip（图片缩略图 / 音频文件名）。
-  - `emit("send", text, deepThink, attachments)`。
+  - 选中文件后**不联网**，用 `URL.createObjectURL` 本地预览，展示可删除的 chip（图片缩略图 / 音频文件名）；本地校验类型、大小、数量，不合格直接拒绝。
+  - 点发送：进入"上传中"态（发送按钮转圈、禁止重复提交），**并发**上传所有附件到 `/api/chat/attachment/upload`；全部成功拿到 URL 后 `emit("send", text, deepThink, attachments)`。任一失败 → 中止发送并 toast，保留 chip 供重试。
 - `stores/chat.js`：`sendQuestion(question, deepThink, attachments)`；SSE body 带 `attachments`；用户气泡乐观渲染附件；`loadMessages` 解析 `attachmentJson`。
 - `ChatView.vue`：透传 attachments。
 - 消息渲染：用户气泡渲染图片缩略图（点击看原图）与 `<audio controls>` 播放器。
 
 ## 10. 边界与错误处理
 
-- 上传失败 / 超限 / 类型不符：前端 toast，禁止发送。
+- 上传失败 / 超限 / 类型不符：本地即在选中时拦截；发送时上传失败 → 中止发送并 toast，chip 保留可重试，不产生半送达消息。
 - ASR 失败：降级为提示文本（"语音转写失败"），不阻断其余内容。
 - OSS 上传成功但 URL 后续失效：历史渲染降级为纯文本链接，模型历史本就只用文本，不受影响。
 - 切换会话 / 新建会话导致的上传中断：沿用现有 `ClientDisconnectedException` 静默语义，不报系统错误。

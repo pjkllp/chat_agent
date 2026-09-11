@@ -1,6 +1,7 @@
 package org.example.travel_agent.common;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.dao.entity.AiChatMemoryEntity;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
@@ -11,6 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 public final class MessageConvertUtil {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -66,6 +68,7 @@ public final class MessageConvertUtil {
                     entity.setAttachmentJson(MAPPER.writeValueAsString(attachments));
                 } catch (Exception e) {
                     // 序列化失败不影响消息落库
+                    log.warn("serialize attachments failed, content={}", message.getText(), e);
                 }
             }
 

@@ -51,9 +51,10 @@ function handleKeydown(e) {
   }
 }
 
-function handleSend(text, deepThink) {
-  if (!text.trim() || store.streaming) return;
-  store.sendQuestion(text.trim(), deepThink);
+function handleSend(text, deepThink, attachments = []) {
+  if ((!text || !text.trim()) && !attachments.length) return;
+  if (store.streaming) return;
+  store.sendQuestion((text || "").trim(), deepThink, attachments);
   nextTick(() => scrollToBottom());
 }
 

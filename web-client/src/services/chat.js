@@ -1,4 +1,4 @@
-import { get, del } from "./api";
+import { get, del, upload } from "./api";
 
 const BASE = "/api/chat";
 
@@ -14,4 +14,11 @@ export function fetchMessages(conversationId) {
 
 export function deleteConversation(conversationId) {
   return del(`${BASE}/conversations/${conversationId}`);
+}
+
+export function uploadAttachment(file, conversationId) {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("conversationId", conversationId);
+  return upload(`${BASE}/attachment/upload`, fd);
 }

@@ -50,6 +50,7 @@ export const useChatStore = defineStore("chat", {
       this.messages = (data || []).map((m) => ({
         role: m.messageType === "USER" ? "user" : m.messageType === "ASSISTANT" ? "assistant" : "system",
         content: m.content || "",
+        attachments: parseAttachments(m.attachmentJson),
       }));
       this.conversationId = conversationId;
       const firstUser = this.messages.find((m) => m.role === "user");
@@ -62,14 +63,14 @@ export const useChatStore = defineStore("chat", {
         this.newConversation();
       }
     },
-    sendQuestion(question, deepThink) {
+    sendQuestion(question, deepThink, attachments = []) {
       if (this.streaming) return;
       this.streaming = true;
-      this.messages.push({ role: "user", content: question });
+      this.messages.push({ role: "user", content: question, attachments });
       this.messages.push({ role: "assistant", content: "", streaming: true, thinkingSteps: [] });
       this.workflowSteps = [];
       if (this.title === "新对话") {
-        this.title = question.slice(0, 50);
+        this.title = question.slice(0, 50) || "图片/音频消息";
       }
 
       const sse = useSSE();
@@ -77,7 +78,7 @@ export const useChatStore = defineStore("chat", {
 
       sse.connect(
         "/api/chat/chat",
-        { question, conversationId: convId, isDeepThink: deepThink ? 1 : 0 },
+        { question, conversationId: convId, isDeepThink: deepThink ? 1 : 0, attachments },
         {
           onMessage: (data) => {
             // Non-deepThink path: plain text chunks from simple chat
@@ -120,3 +121,13 @@ export const useChatStore = defineStore("chat", {
     },
   },
 });
+
+function parseAttachments(json) {
+  if (!json) return [];
+  try {
+    const arr = JSON.parse(json);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}

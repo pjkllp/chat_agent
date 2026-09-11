@@ -1,5 +1,6 @@
 package org.example.travel_agent.common;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.travel_agent.dao.entity.AiChatMemoryEntity;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
@@ -11,6 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class MessageConvertUtil {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private MessageConvertUtil() {
     }
@@ -54,6 +57,17 @@ public final class MessageConvertUtil {
             entity.setConversationId(safeConversationId);
             entity.setContent(message.getText());
             entity.setCreateTime(OffsetDateTime.now());
+
+            Object attachments = message.getMetadata() == null
+                    ? null
+                    : message.getMetadata().get("attachments");
+            if (attachments != null) {
+                try {
+                    entity.setAttachmentJson(MAPPER.writeValueAsString(attachments));
+                } catch (Exception e) {
+                    // 序列化失败不影响消息落库
+                }
+            }
 
             if (message instanceof UserMessage) {
                 entity.setMessageType("USER");

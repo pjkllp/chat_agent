@@ -32,6 +32,9 @@ public class AiChatMemoryEntity {
 
     private String content;
 
+    @TableField("attachment_json")
+    private String attachmentJson;
+
     @TableField("create_time")
     private OffsetDateTime createTime;
 }

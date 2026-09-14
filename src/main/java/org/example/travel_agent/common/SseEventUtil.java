@@ -41,15 +41,37 @@ public class SseEventUtil {
             String conversationId = state.value("conversationId", "");
             Object userIdObj = state.value("userId").orElse(null);
             Long userId = userIdObj instanceof Long v ? v : null;
+            Object messageIdObj = state.value("messageId").orElse(null);
+            Long messageId = messageIdObj instanceof Long v ? v : null;
             if (conversationId != null && !conversationId.isBlank()) {
                 switch (status) {
-                    case "start" -> agentTraceService.recordStart(conversationId, userId, node);
-                    case "finish" -> agentTraceService.recordFinish(conversationId, node, safeMessage);
-                    case "error" -> agentTraceService.recordError(conversationId, node, safeMessage);
+                    case "start" -> agentTraceService.recordStart(conversationId, userId, messageId, node);
+                    case "finish" -> agentTraceService.recordFinish(conversationId, messageId, node, safeMessage);
+                    case "error" -> agentTraceService.recordError(conversationId, userId, messageId, node, safeMessage);
                 }
             }
         } catch (Exception e) {
             log.warn("SseEventUtil: failed to record trace for node={}, status={}", node, status, e);
+        }
+    }
+
+    /**
+     * 节点异常兜底：把异常落成一条 error trace，供调用方随后重新抛出以终止工作流。
+     * 只取异常自身的 message（没有则退回类名），不吞异常——异常由调用方继续向上抛。
+     */
+    public void markNodeError(OverAllState state, String node, Throwable error) {
+        String message;
+        if (error == null) {
+            message = "节点执行异常";
+        } else if (error.getMessage() == null || error.getMessage().isBlank()) {
+            message = error.getClass().getSimpleName();
+        } else {
+            message = error.getMessage();
+        }
+        try {
+            sendNodeStatus(state, node, "error", message);
+        } catch (IOException e) {
+            log.warn("markNodeError: failed to send error status for node={}", node, e);
         }
     }
 

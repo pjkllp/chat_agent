@@ -1,19 +1,35 @@
 <template>
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-icon" aria-hidden="true">🤖</div>
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="7.5" stroke="currentColor" stroke-width="2.4" />
+          <circle cx="16" cy="16" r="2.6" fill="currentColor" />
+          <path
+            d="M16 3.5v3.4M16 25.1v3.4M3.5 16h3.4M25.1 16h3.4"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          />
+        </svg>
+      </div>
       <div class="brand-text">
         <div class="brand-title">RAG 智能问答</div>
-        <div class="brand-sub">Powered by AI</div>
+        <div class="brand-sub">Retrieval · Reasoning</div>
       </div>
     </div>
     <button type="button" class="btn-new-chat" @click="newChat">
       <span class="btn-new-chat-icon">+</span>
       <span>新建对话</span>
     </button>
-    <a class="link-admin" href="javascript:void(0)" @click="goAdmin">管理后台</a>
+    <a v-if="auth.isAdmin" class="link-admin" href="javascript:void(0)" @click="goAdmin">管理后台</a>
     <div class="search-wrap">
-      <span class="search-icon" aria-hidden="true">⌕</span>
+      <span class="search-icon" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.6" />
+          <path d="M10.6 10.6 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+        </svg>
+      </span>
       <input type="search" class="search-input" placeholder="搜索对话..." v-model="search" @input="filter" />
       <kbd class="search-kbd">Ctrl / ⌘ + K</kbd>
     </div>
@@ -49,7 +65,7 @@
         <div class="user-avatar">{{ (auth.username || "A").charAt(0).toUpperCase() }}</div>
         <div class="user-meta">
           <span class="user-name">{{ auth.username || "用户" }}</span>
-          <span class="user-role">用户</span>
+          <span class="user-role">{{ auth.isAdmin ? "管理员" : "用户" }}</span>
         </div>
       </div>
     </div>

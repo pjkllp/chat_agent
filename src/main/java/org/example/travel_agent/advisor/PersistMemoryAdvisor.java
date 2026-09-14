@@ -58,7 +58,8 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
         ArrayList<Message> messages = new ArrayList<>();
         messages.addAll(userMessages);
         messages.addAll(assistantMessages);
-        llmMemory.save(MessageConvertUtil.toEntities(messages, userId, conversationId), userId, conversationId);
+        llmMemory.save(MessageConvertUtil.toEntities(messages, userId, conversationId, messageId(chatClientRequest)),
+                userId, conversationId);
         return chatClientResponse;
     }
 
@@ -91,8 +92,15 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
                     if (!assistantBuffer.isEmpty()) {
                         messages.add(new AssistantMessage(assistantBuffer.toString()));
                     }
-                    llmMemory.save(MessageConvertUtil.toEntities(messages, userId, conversationId), userId, conversationId);
+                    llmMemory.save(MessageConvertUtil.toEntities(messages, userId, conversationId, messageId(chatClientRequest)),
+                            userId, conversationId);
                 });
+    }
+
+    /** 取出本轮对话标识；不存在时返回 null，由存储层自行生成 id。 */
+    private Long messageId(ChatClientRequest request) {
+        Object value = request.context().get("messageId");
+        return value instanceof Long v ? v : null;
     }
 
     @NotNull

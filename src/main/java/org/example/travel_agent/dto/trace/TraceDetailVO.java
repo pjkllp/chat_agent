@@ -14,5 +14,7 @@ import java.util.List;
 public class TraceDetailVO {
 
     private String conversationId;
-    private List<NodeTraceStep> steps;
+    private Integer totalTurns;
+    /** 按轮次分组，轮次之间按首次节点开始时间升序；每轮内部节点按开始时间升序。 */
+    private List<TraceTurnVO> turns;
 }

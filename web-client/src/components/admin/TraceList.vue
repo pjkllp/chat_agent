@@ -31,7 +31,9 @@
           <table class="table">
             <thead>
               <tr>
+                <th>用户 ID</th>
                 <th>对话 ID</th>
+                <th>轮次</th>
                 <th>节点数</th>
                 <th>开始时间</th>
                 <th>持续时间</th>
@@ -40,13 +42,15 @@
             </thead>
             <tbody>
               <tr v-for="t in store.traceList" :key="t.conversationId">
-                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">{{ t.conversationId }}</td>
+                <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;" :title="t.userId">{{ t.userId }}</td>
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;" :title="t.conversationId">{{ t.conversationId }}</td>
+                <td>{{ t.turnCount ? t.turnCount : '-' }}</td>
                 <td>{{ t.nodeCount }}</td>
                 <td>{{ formatTime(t.startTime) }}</td>
                 <td>{{ formatDuration(t.totalDuration) }}</td>
                 <td><button class="btn-action" @click="viewDetail(t.conversationId)">查看</button></td>
               </tr>
-              <tr v-if="!store.traceList.length"><td colspan="5" style="text-align:center;color:var(--text-muted);">暂无追踪数据</td></tr>
+              <tr v-if="!store.traceList.length"><td colspan="7" style="text-align:center;color:var(--text-muted);">暂无追踪数据</td></tr>
             </tbody>
           </table>
         </div>
@@ -67,11 +71,14 @@
       <div class="modal-panel modal-panel-landscape">
         <div class="modal-head">
           <h3>链路详情</h3>
-          <div style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-left:12px;">{{ store.traceDetail?.conversationId }}</div>
+          <div style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-left:12px;">
+            {{ store.traceDetail?.conversationId }}
+            <span v-if="store.traceDetail?.totalTurns != null"> · 共 {{ store.traceDetail.totalTurns }} 轮</span>
+          </div>
           <button class="btn-icon" @click="closeDetail" style="border:none;background:transparent;cursor:pointer;font-size:18px;">✕</button>
         </div>
         <div class="modal-body-landscape">
-          <TraceTimeline :steps="store.traceDetail?.steps || []" />
+          <TraceTimeline :turns="store.traceDetail?.turns || []" />
         </div>
       </div>
     </div>

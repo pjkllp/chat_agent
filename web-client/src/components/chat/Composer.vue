@@ -4,8 +4,11 @@
       <div v-if="files.length" class="attach-preview">
         <div v-for="(f, i) in files" :key="i" class="attach-chip">
           <img v-if="f.type === 'IMAGE'" :src="f.preview" class="attach-thumb" alt="" />
-          <span v-else class="attach-audio-name">🎙 {{ f.file.name }}</span>
-          <button type="button" class="attach-remove" @click="removeFile(i)">✕</button>
+          <span v-else class="attach-audio-name">
+            <span class="attach-audio-tag">AUDIO</span>
+            {{ f.file.name }}
+          </span>
+          <button type="button" class="attach-remove" @click="removeFile(i)" aria-label="移除附件">✕</button>
         </div>
       </div>
       <textarea
@@ -21,7 +24,17 @@
           <span class="pill-icon" aria-hidden="true">◎</span>
           深度思考
         </button>
-        <button type="button" class="btn-attach" @click="triggerPick" title="上传图片/音频">📎</button>
+        <button type="button" class="btn-attach" @click="triggerPick" title="上传图片/音频">
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path
+              d="M13.4 6.2 7.1 12.5a2.1 2.1 0 0 0 3 3l6.6-6.6a3.8 3.8 0 0 0-5.4-5.4L4.5 10.3a5.4 5.4 0 0 0 7.7 7.7l5.6-5.6"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
         <input
           ref="fileInput"
           type="file"
@@ -30,8 +43,17 @@
           style="display:none"
           @change="onPick"
         />
-        <button type="button" class="btn-send" :disabled="(!text.trim() && !files.length) || store.streaming || uploading" @click="send">
-          <span aria-hidden="true">{{ uploading ? "…" : "➤" }}</span>
+        <button type="button" class="btn-send" :disabled="(!text.trim() && !files.length) || store.streaming || uploading" @click="send" aria-label="发送">
+          <span v-if="uploading" class="send-pending" aria-hidden="true">…</span>
+          <svg v-else viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path
+              d="M4 10h11m0 0-4.4-4.4M15 10l-4.4 4.4"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
       </div>
     </div>
@@ -116,9 +138,106 @@ async function send() {
 </script>
 
 <style scoped>
-.attach-preview { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
-.attach-chip { position: relative; display: flex; align-items: center; gap: 6px; background: rgba(0,0,0,.06); border-radius: 8px; padding: 4px 8px; }
-.attach-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; }
-.attach-remove { border: none; background: transparent; cursor: pointer; font-size: 12px; }
-.btn-attach { border: none; background: transparent; cursor: pointer; font-size: 18px; }
+.attach-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px 4px;
+}
+
+.attach-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.attach-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+  display: block;
+}
+
+.attach-audio-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.attach-audio-tag {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--accent-surface);
+  border: 1px solid var(--accent-strong);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.attach-remove {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.attach-remove:hover {
+  background: var(--accent-surface);
+  color: var(--danger);
+}
+
+.btn-attach {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn-attach:hover {
+  border-color: var(--accent-strong);
+  background: var(--accent-surface);
+  color: var(--accent-ink);
+}
+
+.btn-attach svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+
+.send-pending {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1;
+}
 </style>

@@ -42,7 +42,12 @@ public final class MessageConvertUtil {
         return messages;
     }
 
-    public static List<AiChatMemoryEntity> toEntities(List<Message> messages, Long userId, String conversationId) {
+    /**
+     * @param messageId 本轮对话的标识；落到 ASSISTANT 那行作为主键，使其与 trace 的 message_id 一致。
+     *                  为 null 时（如简单问答链路）由存储层自行生成雪花 id。
+     */
+    public static List<AiChatMemoryEntity> toEntities(List<Message> messages, Long userId, String conversationId,
+                                                      Long messageId) {
         List<AiChatMemoryEntity> entities = new ArrayList<>();
         if (messages == null || messages.isEmpty()) {
             return entities;
@@ -76,6 +81,10 @@ public final class MessageConvertUtil {
                 entity.setMessageType("USER");
             } else if (message instanceof AssistantMessage) {
                 entity.setMessageType("ASSISTANT");
+                // 本轮 AI 回复沿用请求入口预生成的 id，使 t_agent_trace.message_id 能直接关联到这条消息
+                if (messageId != null) {
+                    entity.setId(messageId);
+                }
             } else if (message instanceof SystemMessage) {
                 entity.setMessageType("SYSTEM");
             } else {

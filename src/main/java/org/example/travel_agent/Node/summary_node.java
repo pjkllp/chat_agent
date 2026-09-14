@@ -20,31 +20,37 @@ public class summary_node implements NodeAction {
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
-        sseEventUtil.sendNodeStatus(state, "summary_node", "start", "开始汇总工具结果");
+        try {
+            sseEventUtil.sendNodeStatus(state, "summary_node", "start", "开始汇总工具结果");
 
-        String rewriteQuestion = state.value("rewrite_question", "");
-        String searchContext = state.value("search_context", "");
-        String retrieveContext = state.value("retrieve_context", "");
-        String searchKeyword = state.value("search_intent", "");
-        String retrieveKeyword = state.value("retrieve_intent", "");
+            String rewriteQuestion = state.value("rewrite_question", "");
+            String searchContext = state.value("search_context", "");
+            String retrieveContext = state.value("retrieve_context", "");
+            String searchKeyword = state.value("search_intent", "");
+            String retrieveKeyword = state.value("retrieve_intent", "");
 
-        ClassPathResource classPathResource = new ClassPathResource("prompt/summary.st");
+            ClassPathResource classPathResource = new ClassPathResource("prompt/summary.st");
 
-        PromptTemplate promptTemplate = new PromptTemplate(classPathResource);
-        String originalQuestion = state.value("original_question", "");
+            PromptTemplate promptTemplate = new PromptTemplate(classPathResource);
+            String originalQuestion = state.value("original_question", "");
 
 
 
-        String summaryInput = promptTemplate.render(Map.of(
-                "original_question",originalQuestion,
-                "rewrite_question", rewriteQuestion == null ? "" : rewriteQuestion,
-                "search_keyword", searchKeyword == null ? "" : searchKeyword,
-                "search_context", searchContext == null ? "" : searchContext,
-                "retrieve_keyword", retrieveKeyword == null ? "" : retrieveKeyword,
-                "retrieve_context", retrieveContext == null ? "" : retrieveContext
-        ));
-        log.info(summaryInput);
-        sseEventUtil.sendNodeStatus(state, "summary_node", "finish", "结果汇总完成");
-        return Map.of("summary_prompt",summaryInput);
+            String summaryInput = promptTemplate.render(Map.of(
+                    "original_question",originalQuestion,
+                    "rewrite_question", rewriteQuestion == null ? "" : rewriteQuestion,
+                    "search_keyword", searchKeyword == null ? "" : searchKeyword,
+                    "search_context", searchContext == null ? "" : searchContext,
+                    "retrieve_keyword", retrieveKeyword == null ? "" : retrieveKeyword,
+                    "retrieve_context", retrieveContext == null ? "" : retrieveContext
+            ));
+            log.info(summaryInput);
+            sseEventUtil.sendNodeStatus(state, "summary_node", "finish", "结果汇总完成");
+            return Map.of("summary_prompt",summaryInput);
+        } catch (Exception e) {
+            log.error("summary_node failed", e);
+            sseEventUtil.markNodeError(state, "summary_node", e);
+            throw e;
+        }
     }
 }

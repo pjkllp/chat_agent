@@ -27,6 +27,10 @@ public class AgentTraceEntity {
     @TableField("conversation_id")
     private String conversationId;
 
+    /** 一轮对话的唯一标识；同一轮内所有节点行共用，等于该轮 AI 回复在 t_ai_chat_memory 的主键。 */
+    @TableField("message_id")
+    private Long messageId;
+
     @TableField("node_name")
     private String nodeName;
 

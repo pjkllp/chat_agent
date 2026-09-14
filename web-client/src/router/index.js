@@ -7,7 +7,7 @@ import AdminView from "../views/AdminView.vue";
 const routes = [
   { path: "/auth", name: "auth", component: AuthView, meta: { guest: true } },
   { path: "/", name: "chat", component: ChatView, meta: { auth: true } },
-  { path: "/admin", name: "admin", component: AdminView, meta: { auth: true } },
+  { path: "/admin", name: "admin", component: AdminView, meta: { auth: true, admin: true } },
 ];
 
 const router = createRouter({
@@ -20,6 +20,8 @@ router.beforeEach((to, _from, next) => {
   auth.initFromStorage();
   if (to.meta.auth && !auth.isLoggedIn) {
     next("/auth");
+  } else if (to.meta.admin && !auth.isAdmin) {
+    next("/");
   } else if (to.meta.guest && auth.isLoggedIn) {
     next("/");
   } else {

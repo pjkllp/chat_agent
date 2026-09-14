@@ -16,6 +16,8 @@ public class ConversationTraceVO {
     private String conversationId;
     private Long userId;
     private Long nodeCount;
+    /** 该会话包含的轮次数量（按 message_id 去重）。 */
+    private Long turnCount;
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private Long totalDuration;

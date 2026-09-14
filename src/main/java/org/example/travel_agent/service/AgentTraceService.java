@@ -8,15 +8,15 @@ import org.example.travel_agent.dto.trace.TraceStatsVO;
 
 public interface AgentTraceService {
 
-    void recordStart(String conversationId, Long userId, String nodeName);
+    void recordStart(String conversationId, Long userId, Long messageId, String nodeName);
 
-    void recordFinish(String conversationId, String nodeName, String resultData);
+    void recordFinish(String conversationId, Long messageId, String nodeName, String resultData);
 
-    void recordError(String conversationId, String nodeName, String errorMessage);
+    void recordError(String conversationId, Long userId, Long messageId, String nodeName, String errorMessage);
 
-    Page<ConversationTraceVO> listConversations(Long userId, int current, int size);
+    Page<ConversationTraceVO> listConversations(int current, int size);
 
     TraceDetailVO getTraceDetail(String conversationId);
 
-    TraceStatsVO getTraceStats(Long userId);
+    TraceStatsVO getTraceStats();
 }

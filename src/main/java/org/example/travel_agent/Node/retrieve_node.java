@@ -3,6 +3,7 @@ package org.example.travel_agent.Node;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.common.SseEventUtil;
 import org.example.travel_agent.dao.entity.KnowledgeVectorEntity;
 import org.example.travel_agent.dao.mapper.KnowledgeVectorMapper;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class retrieve_node implements NodeAction {
@@ -30,49 +32,55 @@ public class retrieve_node implements NodeAction {
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
-        long startMs = System.currentTimeMillis();
-        sseEventUtil.sendNodeStatus(state, "retrieve_node", "start", "开始召回知识库内容");
+        try {
+            long startMs = System.currentTimeMillis();
+            sseEventUtil.sendNodeStatus(state, "retrieve_node", "start", "开始召回知识库内容");
 
-        String query = state.value("retrieve_intent", "");
-        query = query == null ? "" : query.trim();
-        if (query.isBlank()) {
-            sseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "retrieve_intent 为空，跳过召回");
-            return Map.of("retrieve_context", "", "retrieve_matches", List.of());
-        }
-
-        float[] queryEmbedding = embeddingModel.embed(query);
-        if (queryEmbedding == null || queryEmbedding.length == 0) {
-            sseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "向量生成失败，跳过召回");
-            return Map.of("retrieve_context", "", "retrieve_matches", List.of());
-        }
-
-        String queryVector = toVectorLiteral(queryEmbedding);
-        List<KnowledgeVectorEntity> entities = knowledgeVectorMapper.similaritySearch(queryVector, Math.max(1, topK));
-
-        List<String> fragments = new ArrayList<>();
-        List<Map<String, Object>> matches = new ArrayList<>();
-        for (KnowledgeVectorEntity entity : entities) {
-            String content = entity.getContent() == null ? "" : entity.getContent().trim();
-            if (!content.isEmpty()) {
-                fragments.add(content);
+            String query = state.value("retrieve_intent", "");
+            query = query == null ? "" : query.trim();
+            if (query.isBlank()) {
+                sseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "retrieve_intent 为空，跳过召回");
+                return Map.of("retrieve_context", "", "retrieve_matches", List.of());
             }
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id", entity.getId());
-            row.put("content", entity.getContent() == null ? "" : entity.getContent());
-            row.put("distance", entity.getDistance() == null ? 0D : entity.getDistance());
-            matches.add(row);
+
+            float[] queryEmbedding = embeddingModel.embed(query);
+            if (queryEmbedding == null || queryEmbedding.length == 0) {
+                sseEventUtil.sendNodeStatus(state, "retrieve_node", "finish", "向量生成失败，跳过召回");
+                return Map.of("retrieve_context", "", "retrieve_matches", List.of());
+            }
+
+            String queryVector = toVectorLiteral(queryEmbedding);
+            List<KnowledgeVectorEntity> entities = knowledgeVectorMapper.similaritySearch(queryVector, Math.max(1, topK));
+
+            List<String> fragments = new ArrayList<>();
+            List<Map<String, Object>> matches = new ArrayList<>();
+            for (KnowledgeVectorEntity entity : entities) {
+                String content = entity.getContent() == null ? "" : entity.getContent().trim();
+                if (!content.isEmpty()) {
+                    fragments.add(content);
+                }
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("id", entity.getId());
+                row.put("content", entity.getContent() == null ? "" : entity.getContent());
+                row.put("distance", entity.getDistance() == null ? 0D : entity.getDistance());
+                matches.add(row);
+            }
+            String retrieveContext = fragments.stream().collect(Collectors.joining("\n\n"));
+
+            long costMs = System.currentTimeMillis() - startMs;
+            sseEventUtil.sendNodeStatus(
+                    state,
+                    "retrieve_node",
+                    "finish",
+                    "知识库召回完成，命中 " + matches.size() + " 条，耗时 " + costMs + "ms"
+            );
+
+            return Map.of("retrieve_context", retrieveContext, "retrieve_matches", matches);
+        } catch (Exception e) {
+            log.error("retrieve_node failed", e);
+            sseEventUtil.markNodeError(state, "retrieve_node", e);
+            throw e;
         }
-        String retrieveContext = fragments.stream().collect(Collectors.joining("\n\n"));
-
-        long costMs = System.currentTimeMillis() - startMs;
-        sseEventUtil.sendNodeStatus(
-                state,
-                "retrieve_node",
-                "finish",
-                "知识库召回完成，命中 " + matches.size() + " 条，耗时 " + costMs + "ms"
-        );
-
-        return Map.of("retrieve_context", retrieveContext, "retrieve_matches", matches);
     }
 
     private String toVectorLiteral(float[] vector) {

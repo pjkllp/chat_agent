@@ -33,84 +33,90 @@ public class intent_identify_node implements NodeAction {
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
-        sseEventUtil.sendNodeStatus(state, "intent_identify_node", "start", "开始识别用户意图");
+        try {
+            sseEventUtil.sendNodeStatus(state, "intent_identify_node", "start", "开始识别用户意图");
 
-        ClassPathResource classPathResource = new ClassPathResource("./prompt/intent_identify_node.st");
-        String rewriteQuestion = state.value("rewrite_question", state.value("original_question", ""));
-        Long userId = state.value("userId", Long.class).orElse(null);
-        Map<String, Object> result = new HashMap<>();
-        result.put("search_intent", "");
-        result.put("retrieve_intent", "");
+            ClassPathResource classPathResource = new ClassPathResource("./prompt/intent_identify_node.st");
+            String rewriteQuestion = state.value("rewrite_question", state.value("original_question", ""));
+            Long userId = state.value("userId", Long.class).orElse(null);
+            Map<String, Object> result = new HashMap<>();
+            result.put("search_intent", "");
+            result.put("retrieve_intent", "");
 
-        String conversationId = state.value("conversationId", "");
+            String conversationId = state.value("conversationId", "");
 
-        boolean parsed = false;
-        int count = 0;
-        while (!parsed && count < MAX_REPEAT_COUNT) {
-            try {
-                String content = deepThinkChatClient.prompt()
-                        .advisors(memoryAdvisor)
-                        .advisors(advisorSpec -> advisorSpec.params(
-                                Map.of(
-                                        "conversationId",conversationId,
-                                        "userId",userId
-                                ))
-                        )
-                        .system(classPathResource)
-                        .user(rewriteQuestion)
-                        .call()
-                        .content();
-                content = content == null ? "" : content.trim();
-                if (content.isBlank()) {
-                    count++;
-                    continue;
-                }
-
-                JSONObject jsonObject = JSON.parseObject(content);
-                if (jsonObject == null) {
-                    count++;
-                    continue;
-                }
-
-                Object intentsObj = jsonObject.get("intents");
-                // 兼容模型直接返回顶层字段：
-                // {"search_intent":"...", "retrieve_intent":"..."}
-                if (intentsObj == null
-                        && (jsonObject.containsKey("search_intent") || jsonObject.containsKey("retrieve_intent"))) {
-                    intentsObj = jsonObject;
-                }
-                if (intentsObj == null) {
-                    count++;
-                    continue;
-                }
-                List<Map<String, String>> intentPairs = normalizeIntentPairs(intentsObj);
-                for (Map<String, String> pair : intentPairs) {
-                    for (Map.Entry<String, String> entry : pair.entrySet()) {
-                        String intentKey = entry.getKey();
-                        String intentValue = entry.getValue();
-                        if (intentKey == null || intentKey.isBlank()) {
-                            continue;
-                        }
-                        if (!result.containsKey(intentKey)) {
-                            continue;
-                        }
-                        result.put(intentKey, intentValue == null ? "" : intentValue.trim());
+            boolean parsed = false;
+            int count = 0;
+            while (!parsed && count < MAX_REPEAT_COUNT) {
+                try {
+                    String content = deepThinkChatClient.prompt()
+                            .advisors(memoryAdvisor)
+                            .advisors(advisorSpec -> advisorSpec.params(
+                                    Map.of(
+                                            "conversationId",conversationId,
+                                            "userId",userId
+                                    ))
+                            )
+                            .system(classPathResource)
+                            .user(rewriteQuestion)
+                            .call()
+                            .content();
+                    content = content == null ? "" : content.trim();
+                    if (content.isBlank()) {
+                        count++;
+                        continue;
                     }
-                }
-                log.info("intent_identify_node parsed intents: search_intent='{}', retrieve_intent='{}'",
-                        result.get("search_intent"), result.get("retrieve_intent"));
-                parsed = true;
-            } catch (Exception parseException) {
-                log.warn("意图解析失败，准备重试: {}", parseException.getMessage());
-                count++;
-            }
-        }
-        if (!parsed) {
-            throw new RepeatToManyException("模型重试生成次数过多，未生成合法JSON");
-        }
 
-        sseEventUtil.sendNodeStatus(state, "intent_identify_node", "finish", "意图识别完成");
-        return result;
+                    JSONObject jsonObject = JSON.parseObject(content);
+                    if (jsonObject == null) {
+                        count++;
+                        continue;
+                    }
+
+                    Object intentsObj = jsonObject.get("intents");
+                    // 兼容模型直接返回顶层字段：
+                    // {"search_intent":"...", "retrieve_intent":"..."}
+                    if (intentsObj == null
+                            && (jsonObject.containsKey("search_intent") || jsonObject.containsKey("retrieve_intent"))) {
+                        intentsObj = jsonObject;
+                    }
+                    if (intentsObj == null) {
+                        count++;
+                        continue;
+                    }
+                    List<Map<String, String>> intentPairs = normalizeIntentPairs(intentsObj);
+                    for (Map<String, String> pair : intentPairs) {
+                        for (Map.Entry<String, String> entry : pair.entrySet()) {
+                            String intentKey = entry.getKey();
+                            String intentValue = entry.getValue();
+                            if (intentKey == null || intentKey.isBlank()) {
+                                continue;
+                            }
+                            if (!result.containsKey(intentKey)) {
+                                continue;
+                            }
+                            result.put(intentKey, intentValue == null ? "" : intentValue.trim());
+                        }
+                    }
+                    log.info("intent_identify_node parsed intents: search_intent='{}', retrieve_intent='{}'",
+                            result.get("search_intent"), result.get("retrieve_intent"));
+                    parsed = true;
+                } catch (Exception parseException) {
+                    log.warn("意图解析失败，准备重试: {}", parseException.getMessage());
+                    count++;
+                }
+            }
+            if (!parsed) {
+                throw new RepeatToManyException("模型重试生成次数过多，未生成合法JSON");
+            }
+
+            sseEventUtil.sendNodeStatus(state, "intent_identify_node", "finish", "意图识别完成");
+            return result;
+        } catch (Exception e) {
+            log.error("intent_identify_node failed", e);
+            sseEventUtil.markNodeError(state, "intent_identify_node", e);
+            throw e;
+        }
     }
 
     private List<Map<String, String>> normalizeIntentPairs(Object intentsObj) {

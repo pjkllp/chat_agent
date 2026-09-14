@@ -14,7 +14,9 @@ export function removeToken() {
 
 async function request(url, options = {}) {
   const headers = { "Content-Type": "application/json" };
-  const skipAuth = url.includes("/login") || url.includes("/register") || url.includes("/verify_username");
+  // 与后端 WebMvcConfig 放行的 /api/auth/** 保持一致：注册、发送验证码等接口
+  // 在未登录状态下也必须能调用，否则会在 fetch 之前就被下面的 token 判空挡掉。
+  const skipAuth = url.startsWith("/api/auth/");
   if (!skipAuth) {
     const token = getToken();
     if (!token) {

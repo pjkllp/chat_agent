@@ -14,25 +14,22 @@ import java.util.List;
 @Mapper
 public interface AgentTraceMapper extends BaseMapper<AgentTraceEntity> {
 
+    // 链路追踪为管理员专属功能，查询不做用户过滤，展示全部用户的会话。
     @Select("SELECT conversation_id, user_id, COUNT(*) AS node_count, "
+            + "COUNT(DISTINCT message_id) AS turn_count, "
             + "MIN(start_time) AS start_time, MAX(end_time) AS end_time, "
             + "SUM(COALESCE(duration, 0)) AS total_duration "
             + "FROM t_agent_trace "
-            + "WHERE user_id = #{userId} "
             + "GROUP BY conversation_id, user_id "
             + "ORDER BY MAX(create_time) DESC")
-    List<ConversationTraceVO> selectConversationsByUser(@Param("userId") Long userId,
-                                                        Page<?> page);
+    List<ConversationTraceVO> selectConversations(Page<?> page);
 
-    @Select("SELECT COUNT(*) FROM ("
-            + "SELECT conversation_id FROM t_agent_trace "
-            + "WHERE user_id = #{userId} GROUP BY conversation_id"
-            + ") t")
-    Long countConversationsByUser(@Param("userId") Long userId);
+    @Select("SELECT COUNT(DISTINCT conversation_id) FROM t_agent_trace")
+    Long countConversations();
 
     @Select("SELECT * FROM t_agent_trace "
             + "WHERE conversation_id = #{conversationId} "
-            + "ORDER BY start_time ASC")
+            + "ORDER BY start_time ASC, id ASC")
     List<AgentTraceEntity> findByConversationId(@Param("conversationId") String conversationId);
 
     @Select("SELECT "
@@ -41,7 +38,6 @@ public interface AgentTraceMapper extends BaseMapper<AgentTraceEntity> {
             + "AVG(CASE WHEN node_name = 'answer_node' THEN duration END) AS avg_duration, "
             + "COUNT(*) AS total_nodes, "
             + "COUNT(CASE WHEN status = 'ERROR' THEN 1 END) AS error_nodes "
-            + "FROM t_agent_trace "
-            + "WHERE user_id = #{userId}")
-    TraceStatsVO selectStatsByUser(@Param("userId") Long userId);
+            + "FROM t_agent_trace")
+    TraceStatsVO selectStats();
 }

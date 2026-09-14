@@ -51,6 +51,9 @@ public class ChatServiceImpl implements ChatService {
         conversationId=conversationId!=null&&!conversationId.isBlank()?
                 conversationId: IdUtil.getSnowflakeNextIdStr();
         String finalConversationId=conversationId;
+        // 本轮对话的唯一标识：trace 各节点行共用，同时作为该轮 AI 回复落库时的主键。
+        // 必须在这里生成——最早写 trace 的 rewrite_node 已经在用，晚于此就没有可用的值。
+        long messageId = IdUtil.getSnowflakeNextId();
 
         List<ChatAttachmentDTO> attachments = requestParam.getAttachments();
         try {
@@ -98,18 +101,19 @@ public class ChatServiceImpl implements ChatService {
 
         CompletableFuture.runAsync(() -> {
             try {
-                log.info("[deepThink] start invoke, conversationId={}, userId={}", finalConversationId, userId);
+                log.info("[deepThink] start invoke, conversationId={}, userId={}, messageId={}", finalConversationId, userId, messageId);
                 deepThinkGraph.invoke(
                         Map.of(
                                 "original_question", originalQuestion,
                                 "conversationId", finalConversationId,
                                 "userId",userId,
+                                "messageId",messageId,
                                 "attachments", attachments == null ? List.of() : attachments
                         )
                 );
                 log.info("[deepThink] invoke finished, conversationId={}", finalConversationId);
             } catch (Exception e) {
-                log.error("[deepThink] invoke failed, conversationId={}, msg={}", finalConversationId, e.getMessage(), e);
+                log.error("[deepThink] invoke failed, conversationId={}, messageId={}, msg={}", finalConversationId, messageId, e.getMessage(), e);
                 sse.completeWithError(e);
                 sseEmitterRegistry.remove(finalConversationId);
             }

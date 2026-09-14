@@ -44,7 +44,22 @@ defineProps({ msg: { type: Object, required: true } });
 </script>
 
 <style scoped>
-.msg-attachments { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
-.msg-attach-image { max-width: 200px; max-height: 200px; border-radius: 8px; display: block; }
-.msg-attach-audio { width: 260px; }
+.msg-attach-image {
+  display: block;
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: transform 0.2s var(--ease), border-color 0.2s;
+}
+
+a:hover > .msg-attach-image {
+  transform: translateY(-2px);
+  border-color: var(--accent-strong);
+}
+
+.msg-attach-audio {
+  width: 260px;
+  height: 36px;
+}
 </style>

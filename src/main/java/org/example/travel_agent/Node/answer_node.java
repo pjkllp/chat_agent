@@ -43,35 +43,38 @@ public class answer_node implements NodeAction {
 
         sseEventUtil.sendNodeStatus(state, "answer_node", "start", "开始生成最终答案");
 
-        String summaryPrompt = state.value("summary_prompt", "");
-
-        String originalQuestion = state.value("original_question", "");
-
-        String rewriteQuestion = state.value("rewrite_question", "");
-        if (summaryPrompt == null || summaryPrompt.isBlank()) {
-            summaryPrompt = state.value("rewrite_question", state.value("original_question", ""));
-        }
-
-        ClassPathResource classPathResource = new ClassPathResource("prompt/answer.st");
-
-        String conversationId = state.value("conversationId", "");
-
-        Long userId = state.value("userId", Long.class).orElse(null);
-
-        @SuppressWarnings("unchecked")
-        List<ChatAttachmentDTO> attachments = state.value("attachments")
-                .filter(List.class::isInstance)
-                .map(v -> (List<ChatAttachmentDTO>) v)
-                .orElse(List.of());
-
         try {
+            String summaryPrompt = state.value("summary_prompt", "");
+
+            String originalQuestion = state.value("original_question", "");
+
+            String rewriteQuestion = state.value("rewrite_question", "");
+            if (summaryPrompt == null || summaryPrompt.isBlank()) {
+                summaryPrompt = state.value("rewrite_question", state.value("original_question", ""));
+            }
+
+            ClassPathResource classPathResource = new ClassPathResource("prompt/answer.st");
+
+            String conversationId = state.value("conversationId", "");
+
+            Long userId = state.value("userId", Long.class).orElse(null);
+
+            Long messageId = state.value("messageId", Long.class).orElse(null);
+
+            @SuppressWarnings("unchecked")
+            List<ChatAttachmentDTO> attachments = state.value("attachments")
+                    .filter(List.class::isInstance)
+                    .map(v -> (List<ChatAttachmentDTO>) v)
+                    .orElse(List.of());
+
             AtomicBoolean hasStreamChunk = new AtomicBoolean(false);
             ChatClient.ChatClientRequestSpec streamSpec = deepThinkChatClient.prompt()
                     .advisors(persistMemoryAdvisor)
                     .advisors(advisorSpec -> advisorSpec.params(
                             Map.of(
                                     "conversationId", conversationId,
-                                    "userId", userId
+                                    "userId", userId,
+                                    "messageId", messageId
                             )
                     ))
                     .system(classPathResource)
@@ -101,7 +104,8 @@ public class answer_node implements NodeAction {
                         .advisors(advisorSpec -> advisorSpec.params(
                                 Map.of(
                                         "conversationId", conversationId,
-                                        "userId", userId
+                                        "userId", userId,
+                                        "messageId", messageId
                                 )
                         ))
                         .system(classPathResource)
@@ -117,18 +121,19 @@ public class answer_node implements NodeAction {
 
             sseEventUtil.sendNodeStatus(state, "answer_node", "finish", "最终答案已生成");
             sseEventUtil.sendNodeStatus(state, "answer_node", "done", "工作流执行完成");
+            return Map.of();
         } catch (Exception e) {
             if (isClientDisconnected(e)) {
+                // 前端主动断开属于正常中止，不算系统错误，也不向上抛
                 log.info("SSE client disconnected, stop streaming answer gracefully");
-            } else {
-                log.error("Generate answer failed", e);
-                sseEventUtil.sendNodeStatus(state, "answer_node", "error", "生成答案失败");
+                return Map.of();
             }
+            log.error("Generate answer failed", e);
+            sseEventUtil.markNodeError(state, "answer_node", e);
+            throw e;
         } finally {
             sseEventUtil.complete(state);
         }
-
-        return Map.of();
     }
 
     private boolean isClientDisconnected(Throwable e) {

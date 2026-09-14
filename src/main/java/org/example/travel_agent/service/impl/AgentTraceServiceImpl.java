@@ -11,11 +11,18 @@ import org.example.travel_agent.dto.trace.ConversationTraceVO;
 import org.example.travel_agent.dto.trace.NodeTraceStep;
 import org.example.travel_agent.dto.trace.TraceDetailVO;
 import org.example.travel_agent.dto.trace.TraceStatsVO;
+import org.example.travel_agent.dto.trace.TraceTurnVO;
 import org.example.travel_agent.service.AgentTraceService;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -24,10 +31,11 @@ import java.util.stream.Collectors;
 public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTraceEntity> implements AgentTraceService {
 
     @Override
-    public void recordStart(String conversationId, Long userId, String nodeName) {
+    public void recordStart(String conversationId, Long userId, Long messageId, String nodeName) {
         AgentTraceEntity entity = AgentTraceEntity.builder()
                 .conversationId(conversationId)
                 .userId(userId)
+                .messageId(messageId)
                 .nodeName(nodeName)
                 .status("START")
                 .startTime(OffsetDateTime.now())
@@ -37,43 +45,30 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
     }
 
     @Override
-    public void recordFinish(String conversationId, String nodeName, String resultData) {
-        List<AgentTraceEntity> existing = this.list(
-                Wrappers.<AgentTraceEntity>lambdaQuery()
-                        .eq(AgentTraceEntity::getConversationId, conversationId)
-                        .eq(AgentTraceEntity::getNodeName, nodeName)
-                        .eq(AgentTraceEntity::getStatus, "START")
-                        .orderByDesc(AgentTraceEntity::getStartTime)
-                        .last("LIMIT 1")
-        );
-        if (existing.isEmpty()) {
-            log.warn("recordFinish: no START record found for conversationId={}, nodeName={}",
-                    conversationId, nodeName);
+    public void recordFinish(String conversationId, Long messageId, String nodeName, String resultData) {
+        AgentTraceEntity entity = findPendingStart(conversationId, messageId, nodeName);
+        if (entity == null) {
+            log.warn("recordFinish: no START record found for conversationId={}, messageId={}, nodeName={}",
+                    conversationId, messageId, nodeName);
             return;
         }
-        AgentTraceEntity entity = existing.get(0);
         OffsetDateTime endTime = OffsetDateTime.now();
-        long duration = java.time.Duration.between(entity.getStartTime(), endTime).toMillis();
         entity.setEndTime(endTime);
-        entity.setDuration(duration);
+        entity.setDuration(Duration.between(entity.getStartTime(), endTime).toMillis());
         entity.setStatus("FINISH");
         entity.setResultData(resultData);
         this.updateById(entity);
     }
 
     @Override
-    public void recordError(String conversationId, String nodeName, String errorMessage) {
-        List<AgentTraceEntity> existing = this.list(
-                Wrappers.<AgentTraceEntity>lambdaQuery()
-                        .eq(AgentTraceEntity::getConversationId, conversationId)
-                        .eq(AgentTraceEntity::getNodeName, nodeName)
-                        .eq(AgentTraceEntity::getStatus, "START")
-                        .orderByDesc(AgentTraceEntity::getStartTime)
-                        .last("LIMIT 1")
-        );
-        if (existing.isEmpty()) {
-            AgentTraceEntity entity = AgentTraceEntity.builder()
+    public void recordError(String conversationId, Long userId, Long messageId, String nodeName, String errorMessage) {
+        AgentTraceEntity entity = findPendingStart(conversationId, messageId, nodeName);
+        if (entity == null) {
+            // 节点在 start 落库前就失败了，补一条完整的 ERROR 行
+            AgentTraceEntity fallback = AgentTraceEntity.builder()
                     .conversationId(conversationId)
+                    .userId(userId)
+                    .messageId(messageId)
                     .nodeName(nodeName)
                     .status("ERROR")
                     .startTime(OffsetDateTime.now())
@@ -82,24 +77,39 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
                     .errorMessage(errorMessage)
                     .createTime(OffsetDateTime.now())
                     .build();
-            this.save(entity);
-        } else {
-            AgentTraceEntity entity = existing.get(0);
-            OffsetDateTime endTime = OffsetDateTime.now();
-            long duration = java.time.Duration.between(entity.getStartTime(), endTime).toMillis();
-            entity.setEndTime(endTime);
-            entity.setDuration(duration);
-            entity.setStatus("ERROR");
-            entity.setErrorMessage(errorMessage);
-            this.updateById(entity);
+            this.save(fallback);
+            return;
         }
+        OffsetDateTime endTime = OffsetDateTime.now();
+        entity.setEndTime(endTime);
+        entity.setDuration(Duration.between(entity.getStartTime(), endTime).toMillis());
+        entity.setStatus("ERROR");
+        entity.setErrorMessage(errorMessage);
+        this.updateById(entity);
+    }
+
+    /**
+     * 定位某轮某节点尚未结束的 START 行。带上 messageId 后可精确命中本轮，
+     * 不会再误取到同一会话中历史轮次遗留的孤儿 START。
+     */
+    private AgentTraceEntity findPendingStart(String conversationId, Long messageId, String nodeName) {
+        List<AgentTraceEntity> existing = this.list(
+                Wrappers.<AgentTraceEntity>lambdaQuery()
+                        .eq(AgentTraceEntity::getConversationId, conversationId)
+                        .eq(messageId != null, AgentTraceEntity::getMessageId, messageId)
+                        .eq(AgentTraceEntity::getNodeName, nodeName)
+                        .eq(AgentTraceEntity::getStatus, "START")
+                        .orderByDesc(AgentTraceEntity::getStartTime)
+                        .last("LIMIT 1")
+        );
+        return existing.isEmpty() ? null : existing.get(0);
     }
 
     @Override
-    public Page<ConversationTraceVO> listConversations(Long userId, int current, int size) {
+    public Page<ConversationTraceVO> listConversations(int current, int size) {
         Page<ConversationTraceVO> page = new Page<>(current, size);
-        page.setTotal(this.baseMapper.countConversationsByUser(userId));
-        List<ConversationTraceVO> records = this.baseMapper.selectConversationsByUser(userId, page);
+        page.setTotal(this.baseMapper.countConversations());
+        List<ConversationTraceVO> records = this.baseMapper.selectConversations(page);
         page.setRecords(records);
         return page;
     }
@@ -107,7 +117,27 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
     @Override
     public TraceDetailVO getTraceDetail(String conversationId) {
         List<AgentTraceEntity> entities = this.baseMapper.findByConversationId(conversationId);
-        List<NodeTraceStep> steps = entities.stream()
+
+        // findByConversationId 已按 start_time 升序，LinkedHashMap 因此保持轮次的先后顺序。
+        // messageId 为 null 的是加字段之前的历史数据，统一并入一个"未知轮次"分组。
+        Map<Long, List<AgentTraceEntity>> grouped = new LinkedHashMap<>();
+        for (AgentTraceEntity entity : entities) {
+            grouped.computeIfAbsent(entity.getMessageId(), key -> new ArrayList<>()).add(entity);
+        }
+
+        List<TraceTurnVO> turns = grouped.entrySet().stream()
+                .map(entry -> toTurn(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
+
+        return TraceDetailVO.builder()
+                .conversationId(conversationId)
+                .totalTurns(turns.size())
+                .turns(turns)
+                .build();
+    }
+
+    private TraceTurnVO toTurn(Long messageId, List<AgentTraceEntity> rows) {
+        List<NodeTraceStep> steps = rows.stream()
                 .map(e -> NodeTraceStep.builder()
                         .nodeName(e.getNodeName())
                         .status(e.getStatus())
@@ -118,15 +148,46 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
                         .errorMessage(e.getErrorMessage())
                         .build())
                 .collect(Collectors.toList());
-        return TraceDetailVO.builder()
-                .conversationId(conversationId)
+
+        OffsetDateTime startTime = rows.stream()
+                .map(AgentTraceEntity::getStartTime)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
+        OffsetDateTime endTime = rows.stream()
+                .map(AgentTraceEntity::getEndTime)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        long totalDuration = rows.stream()
+                .map(AgentTraceEntity::getDuration)
+                .filter(Objects::nonNull)
+                .mapToLong(Long::longValue)
+                .sum();
+
+        return TraceTurnVO.builder()
+                .messageId(messageId)
+                .status(resolveTurnStatus(rows))
+                .startTime(startTime)
+                .endTime(endTime)
+                .totalDuration(totalDuration)
+                .nodeCount(rows.size())
                 .steps(steps)
                 .build();
     }
 
+    private String resolveTurnStatus(List<AgentTraceEntity> rows) {
+        if (rows.stream().anyMatch(r -> "ERROR".equals(r.getStatus()))) {
+            return "ERROR";
+        }
+        boolean hasUnfinished = rows.stream()
+                .anyMatch(r -> "START".equals(r.getStatus()) && r.getEndTime() == null);
+        return hasUnfinished ? "RUNNING" : "FINISH";
+    }
+
     @Override
-    public TraceStatsVO getTraceStats(Long userId) {
-        TraceStatsVO stats = this.baseMapper.selectStatsByUser(userId);
+    public TraceStatsVO getTraceStats() {
+        TraceStatsVO stats = this.baseMapper.selectStats();
         if (stats == null) {
             return TraceStatsVO.builder()
                     .totalConversations(0)

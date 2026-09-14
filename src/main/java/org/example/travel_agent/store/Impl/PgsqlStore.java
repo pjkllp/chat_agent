@@ -21,13 +21,9 @@ public class PgsqlStore implements Store {
     public void append(List<AiChatMemoryEntity> messages, long userId, String conversationId) {
         for (AiChatMemoryEntity message : messages) {
             try {
-                if (message.getId() == null) {
-                    // IdType.ASSIGN_ID will generate a Snowflake ID on insert
-                    aiChatMemoryMapper.insert(message);
-                } else {
-                    // ID already set (e.g. by RedisStore), use insert with existing ID
-                    aiChatMemoryMapper.insert(message);
-                }
+                // id 为空时 IdType.ASSIGN_ID 在 insert 时生成雪花 id；
+                // 已有 id（RedisStore 生成，或 AI 回复沿用的 messageId）则原样写入。
+                aiChatMemoryMapper.insert(message);
             } catch (Exception e) {
                 log.warn("PgsqlStore.append: insert failed for conversationId={}", conversationId, e);
             }

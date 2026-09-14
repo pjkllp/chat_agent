@@ -29,44 +29,50 @@ public class search_node implements NodeAction {
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
-        long startMs = System.currentTimeMillis();
-        sseEventUtil.sendNodeStatus(state, "search_node", "start", "开始调用搜索能力");
+        try {
+            long startMs = System.currentTimeMillis();
+            sseEventUtil.sendNodeStatus(state, "search_node", "start", "开始调用搜索能力");
 
-        String query = state.value("search_intent", "");
-        query = query == null ? "" : query.trim();
-        if (query == null || query.isBlank()) {
-            sseEventUtil.sendNodeStatus(state, "search_node", "finish", "search_intent 为空，跳过联网检索");
-            return Map.of("search_context", "", "search_matches", List.of());
+            String query = state.value("search_intent", "");
+            query = query == null ? "" : query.trim();
+            if (query == null || query.isBlank()) {
+                sseEventUtil.sendNodeStatus(state, "search_node", "finish", "search_intent 为空，跳过联网检索");
+                return Map.of("search_context", "", "search_matches", List.of());
+            }
+
+            List<BaiduSearchResult> results = baiduSearchService.search(query, topK);
+            List<Map<String, Object>> matches = new ArrayList<>();
+            for (int i = 0; i < results.size(); i++) {
+                BaiduSearchResult result = results.get(i);
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("title", result.getTitle() == null ? "" : result.getTitle());
+                row.put("url", result.getUrl() == null ? "" : result.getUrl());
+                row.put("snippet", result.getSnippet() == null ? "" : result.getSnippet());
+                matches.add(row);
+
+                String title = result.getTitle() == null ? "" : result.getTitle();
+                String url = result.getUrl() == null ? "" : result.getUrl();
+                String hitLog = String.format("命中第%d条: %s | %s", i + 1, title, url);
+                log.info("[search_node] {}", hitLog);
+                // 通过 SSE 回传每一条命中，前端可直接看到具体结果
+                sseEventUtil.sendNodeStatus(state, "search_node", "hit", hitLog);
+            }
+            String searchContext = results.stream()
+                    .map(item -> "标题: " + item.getTitle() + "\n链接: " + item.getUrl())
+                    .collect(Collectors.joining("\n\n"));
+
+            long costMs = System.currentTimeMillis() - startMs;
+            sseEventUtil.sendNodeStatus(
+                    state,
+                    "search_node",
+                    "finish",
+                    "百度搜索完成，命中 " + results.size() + " 条，耗时 " + costMs + "ms"
+            );
+            return Map.of("search_context", searchContext, "search_matches", matches);
+        } catch (Exception e) {
+            log.error("search_node failed", e);
+            sseEventUtil.markNodeError(state, "search_node", e);
+            throw e;
         }
-
-        List<BaiduSearchResult> results = baiduSearchService.search(query, topK);
-        List<Map<String, Object>> matches = new ArrayList<>();
-        for (int i = 0; i < results.size(); i++) {
-            BaiduSearchResult result = results.get(i);
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("title", result.getTitle() == null ? "" : result.getTitle());
-            row.put("url", result.getUrl() == null ? "" : result.getUrl());
-            row.put("snippet", result.getSnippet() == null ? "" : result.getSnippet());
-            matches.add(row);
-
-            String title = result.getTitle() == null ? "" : result.getTitle();
-            String url = result.getUrl() == null ? "" : result.getUrl();
-            String hitLog = String.format("命中第%d条: %s | %s", i + 1, title, url);
-            log.info("[search_node] {}", hitLog);
-            // 通过 SSE 回传每一条命中，前端可直接看到具体结果
-            sseEventUtil.sendNodeStatus(state, "search_node", "hit", hitLog);
-        }
-        String searchContext = results.stream()
-                .map(item -> "标题: " + item.getTitle() + "\n链接: " + item.getUrl())
-                .collect(Collectors.joining("\n\n"));
-
-        long costMs = System.currentTimeMillis() - startMs;
-        sseEventUtil.sendNodeStatus(
-                state,
-                "search_node",
-                "finish",
-                "百度搜索完成，命中 " + results.size() + " 条，耗时 " + costMs + "ms"
-        );
-        return Map.of("search_context", searchContext, "search_matches", matches);
     }
 }

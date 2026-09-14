@@ -39,8 +39,12 @@ public class RedisStore implements Store {
         String zsetKey = String.format(ZSET_USER_CONVERSATION_KEY, userId, conversationId);
         String hashKey = String.format(HASH_USER_CONVERSATION_KEY, userId, conversationId);
         for (AiChatMemoryEntity message : messages) {
-            String msgId = IdUtil.getSnowflakeNextIdStr();
-            message.setId(Long.parseLong(msgId));
+            // 已带 id 的消息（AI 回复沿用请求入口生成的 messageId）必须保留原值，
+            // 否则会与 t_agent_trace.message_id 以及 PgsqlStore 写入的主键对不上。
+            if (message.getId() == null) {
+                message.setId(IdUtil.getSnowflakeNextId());
+            }
+            String msgId = String.valueOf(message.getId());
             stringRedisTemplate.opsForZSet().add(zsetKey, msgId, System.currentTimeMillis());
             stringRedisTemplate.opsForHash().put(hashKey, msgId, JSON.toJSONString(message));
         }

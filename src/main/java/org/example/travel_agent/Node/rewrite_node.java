@@ -26,34 +26,39 @@ public class rewrite_node implements NodeAction {
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
+        try {
+            ClassPathResource classPathResource = new ClassPathResource("prompt/rewrite.st");
 
-        ClassPathResource classPathResource = new ClassPathResource("prompt/rewrite.st");
+            String originalQuestion = state.value("original_question", "");
 
-        String originalQuestion = state.value("original_question", "");
+            Long userId = state.value("userId", Long.class).orElse(null);
 
-        Long userId = state.value("userId", Long.class).orElse(null);
+            log.info("开始改写用户问题，用户原始问题:{}",originalQuestion);
 
-        log.info("开始改写用户问题，用户原始问题:{}",originalQuestion);
+            sseEventUtil.sendNodeStatus(state, "rewrite_node", "start", "开始改写用户问题");
 
-        sseEventUtil.sendNodeStatus(state, "rewrite_node", "start", "开始改写用户问题");
+            String conversationId = state.value("conversationId", "");
 
-        String conversationId = state.value("conversationId", "");
+            String rewriteQuestion = deepThinkChatClient.prompt()
+                    .system(classPathResource)
+                    .user(originalQuestion)
+                    .advisors(memoryAdvisor)
+                    .advisors(advisorSpec -> advisorSpec.params(
+                            Map.of(
+                                    "conversationId", conversationId,
+                                    "userId", userId
+                            ))
+                    ).call().content();
 
-        String rewriteQuestion = deepThinkChatClient.prompt()
-                .system(classPathResource)
-                .user(originalQuestion)
-                .advisors(memoryAdvisor)
-                .advisors(advisorSpec -> advisorSpec.params(
-                        Map.of(
-                                "conversationId", conversationId,
-                                "userId", userId
-                        ))
-                ).call().content();
+            log.info("改写用户问题完毕，改写后的问题:{}",rewriteQuestion);
 
-        log.info("改写用户问题完毕，改写后的问题:{}",rewriteQuestion);
+            sseEventUtil.sendNodeStatus(state, "rewrite_node", "finish", "问题改写完成");
 
-        sseEventUtil.sendNodeStatus(state, "rewrite_node", "finish", "问题改写完成");
-
-        return Map.of("rewrite_question",rewriteQuestion);
+            return Map.of("rewrite_question",rewriteQuestion);
+        } catch (Exception e) {
+            log.error("rewrite_node failed", e);
+            sseEventUtil.markNodeError(state, "rewrite_node", e);
+            throw e;
+        }
     }
 }

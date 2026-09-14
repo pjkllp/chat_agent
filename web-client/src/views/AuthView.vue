@@ -7,13 +7,24 @@
     <div class="auth-page">
       <aside class="auth-side">
         <div class="auth-brand">
-          <div class="auth-brand-icon">🤖</div>
+          <div class="auth-brand-icon">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="7.5" stroke="currentColor" stroke-width="2.4" />
+              <circle cx="16" cy="16" r="2.6" fill="currentColor" />
+              <path
+                d="M16 3.5v3.4M16 25.1v3.4M3.5 16h3.4M25.1 16h3.4"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+              />
+            </svg>
+          </div>
           <div>
             <div class="auth-brand-title">RAG 智能问答</div>
-            <div class="auth-brand-sub">Powered by AI</div>
+            <div class="auth-brand-sub">Retrieval · Reasoning</div>
           </div>
         </div>
-        <h1 class="auth-side-title">把问题变成<span style="color:var(--primary)">清晰答案</span></h1>
+        <h1 class="auth-side-title">把问题变成<span>清晰答案</span></h1>
         <p class="auth-side-desc">登录后可使用深度思考、知识检索与会话历史功能。</p>
       </aside>
       <main class="auth-main">

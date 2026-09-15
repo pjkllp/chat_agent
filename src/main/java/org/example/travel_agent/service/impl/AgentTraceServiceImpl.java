@@ -177,6 +177,10 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
     }
 
     private String resolveTurnStatus(List<AgentTraceEntity> rows) {
+        // 取消优先于 RUNNING：取消后残留的未结束 START 行不应把整轮显示成“进行中”
+        if (rows.stream().anyMatch(r -> "CANCEL".equals(r.getStatus()))) {
+            return "CANCEL";
+        }
         if (rows.stream().anyMatch(r -> "ERROR".equals(r.getStatus()))) {
             return "ERROR";
         }
@@ -202,5 +206,33 @@ public class AgentTraceServiceImpl extends ServiceImpl<AgentTraceMapper, AgentTr
         long errors = stats.getErrorConversations();
         stats.setErrorRate(total > 0 ? String.format("%.1f%%", errors * 100.0 / total) : "0%");
         return stats;
+    }
+
+    @Override
+    public void recordCancel(String conversationId, Long userId, Long messageId, String node, String safeMessage) {
+        AgentTraceEntity entity = findPendingStart(conversationId, messageId, node);
+        if (entity == null) {
+            // 节点在 start 落库前就被取消了，补一条完整的 CANCEL 行
+            AgentTraceEntity fallback = AgentTraceEntity.builder()
+                    .conversationId(conversationId)
+                    .userId(userId)
+                    .messageId(messageId)
+                    .nodeName(node)
+                    .status("CANCEL")
+                    .startTime(OffsetDateTime.now())
+                    .endTime(OffsetDateTime.now())
+                    .duration(0L)
+                    .errorMessage(safeMessage)
+                    .createTime(OffsetDateTime.now())
+                    .build();
+            this.save(fallback);
+            return;
+        }
+        OffsetDateTime endTime = OffsetDateTime.now();
+        entity.setEndTime(endTime);
+        entity.setDuration(Duration.between(entity.getStartTime(), endTime).toMillis());
+        entity.setStatus("CANCEL");
+        entity.setErrorMessage(safeMessage);
+        this.updateById(entity);
     }
 }

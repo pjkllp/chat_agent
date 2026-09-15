@@ -48,6 +48,7 @@ public class SseEventUtil {
                     case "start" -> agentTraceService.recordStart(conversationId, userId, messageId, node);
                     case "finish" -> agentTraceService.recordFinish(conversationId, messageId, node, safeMessage);
                     case "error" -> agentTraceService.recordError(conversationId, userId, messageId, node, safeMessage);
+                    case "cancel" -> agentTraceService.recordCancel(conversationId, userId, messageId, node, safeMessage);
                 }
             }
         } catch (Exception e) {
@@ -87,6 +88,14 @@ public class SseEventUtil {
         return resolveEmitter(state) != null;
     }
 
+    /**
+     * 本轮（messageId）是否已被用户取消。节点入口和流式分片都靠它做拦截。
+     */
+    public boolean isCancelled(OverAllState state) {
+        Long messageId = state.value("messageId", Long.class).orElse(null);
+        return sseEmitterRegistry.isCancel(messageId);
+    }
+
     public void complete(OverAllState state) {
         String executionId = state.value("conversationId", "");
         SseEmitter sse = resolveEmitter(state);
@@ -103,4 +112,5 @@ public class SseEventUtil {
         }
         return sseEmitterRegistry.get(conversationId);
     }
+
 }

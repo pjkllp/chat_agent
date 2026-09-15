@@ -7,6 +7,8 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.session.SqlSession;
+import org.example.travel_agent.Exceptions.CancelException;
 import org.example.travel_agent.Exceptions.RepeatToManyException;
 import org.example.travel_agent.advisor.ContextMemoryAdvisor;
 import org.example.travel_agent.common.SseEventUtil;
@@ -30,6 +32,7 @@ public class intent_identify_node implements NodeAction {
     private final SseEventUtil sseEventUtil;
 
     private final int MAX_REPEAT_COUNT=3;
+    private final SqlSession sqlSession;
 
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
@@ -44,6 +47,12 @@ public class intent_identify_node implements NodeAction {
             result.put("retrieve_intent", "");
 
             String conversationId = state.value("conversationId", "");
+
+            if (sseEventUtil.isCancelled(state)) {
+                log.info("intent_identify_node canceled for conversationId={}", conversationId);
+                sseEventUtil.sendNodeStatus(state, "intent_identify_node", "cancel", "用户取消了本轮对话");
+                throw new CancelException("用户取消了本轮对话");
+            }
 
             boolean parsed = false;
             int count = 0;
@@ -112,6 +121,9 @@ public class intent_identify_node implements NodeAction {
 
             sseEventUtil.sendNodeStatus(state, "intent_identify_node", "finish", "意图识别完成");
             return result;
+        } catch (CancelException e) {
+            // 取消 trace 已在节点内落库，不再按系统错误记一条
+            throw e;
         } catch (Exception e) {
             log.error("intent_identify_node failed", e);
             sseEventUtil.markNodeError(state, "intent_identify_node", e);

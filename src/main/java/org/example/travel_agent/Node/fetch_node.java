@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.travel_agent.Exceptions.CancelException;
 import org.example.travel_agent.common.SseEventUtil;
 import org.example.travel_agent.service.impl.FetchService;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,6 +37,12 @@ public class fetch_node implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
         try {
+
+            if (sseEventUtil.isCancelled(state)) {
+                log.info("fetch_node canceled");
+                sseEventUtil.sendNodeStatus(state, "fetch_node", "cancel", "用户取消了本轮对话");
+                throw new CancelException("用户取消了本轮对话");
+            }
             long startMs = System.currentTimeMillis();
             log.info("[fetch_node] enter, topK={}", topK);
             sseEventUtil.sendNodeStatus(state, "fetch_node", "start", "开始抓取搜索结果正文");
@@ -118,6 +125,9 @@ public class fetch_node implements NodeAction {
             );
 
             return Map.of("fetched_docs", fetchedDocs, "search_context", fetchedContext);
+        } catch (CancelException e) {
+            // 取消 trace 已在节点内落库，不再按系统错误记一条
+            throw e;
         } catch (Exception e) {
             log.error("fetch_node failed", e);
             sseEventUtil.markNodeError(state, "fetch_node", e);

@@ -2,8 +2,10 @@ package org.example.travel_agent.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.example.travel_agent.common.SseEventUtil;
 import org.example.travel_agent.common.UserContext;
 import org.example.travel_agent.dao.entity.AiChatMemoryEntity;
+import org.example.travel_agent.dto.CancelRequest;
 import org.example.travel_agent.dto.ChatRequest;
 import org.example.travel_agent.dto.ConversationVO;
 import org.example.travel_agent.dto.Result;
@@ -28,6 +30,14 @@ public class ChatController {
         SseEmitter sse = new SseEmitter(0L);
         chatService.chatStream(requestParam, sse);
         return sse;
+    }
+
+    @PostMapping("/cancel")
+    public Result<Void> cancel(@RequestBody CancelRequest requestParam) {
+        boolean cancelled = chatService.cancelChat(requestParam.getMessageId(), UserContext.get().getId());
+        return cancelled
+                ? Result.success("取消成功")
+                : Result.fail("该轮对话已结束，无需取消");
     }
 
 

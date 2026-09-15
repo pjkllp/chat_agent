@@ -43,7 +43,21 @@
           style="display:none"
           @change="onPick"
         />
-        <button type="button" class="btn-send" :disabled="(!text.trim() && !files.length) || store.streaming || uploading" @click="send" aria-label="发送">
+        <button
+          v-if="store.streaming"
+          type="button"
+          class="btn-stop"
+          :disabled="store.cancelling"
+          @click="store.cancelCurrent()"
+          :aria-label="store.cancelling ? '正在取消' : '停止生成'"
+          :title="store.cancelling ? '正在取消…' : '停止生成'"
+        >
+          <span v-if="store.cancelling" class="send-pending" aria-hidden="true">…</span>
+          <svg v-else viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="6" y="6" width="8" height="8" rx="1.4" fill="currentColor" />
+          </svg>
+        </button>
+        <button v-else type="button" class="btn-send" :disabled="(!text.trim() && !files.length) || uploading" @click="send" aria-label="发送">
           <span v-if="uploading" class="send-pending" aria-hidden="true">…</span>
           <svg v-else viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path

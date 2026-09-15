@@ -46,8 +46,14 @@ const nodeLabels = {
   summary_node: "总结",
 };
 
-// 后端落库的 status 是大写（START/FINISH/ERROR），这里统一归一化后再做样式和文案映射
-const STATUS_LABELS = { START: "进行中", RUNNING: "进行中", FINISH: "完成", ERROR: "失败" };
+// 后端落库的 status 是大写（START/FINISH/ERROR/CANCEL），这里统一归一化后再做样式和文案映射
+const STATUS_LABELS = {
+  START: "进行中",
+  RUNNING: "进行中",
+  FINISH: "完成",
+  ERROR: "失败",
+  CANCEL: "已取消",
+};
 
 function nodeLabel(name) {
   return nodeLabels[name] || name || "未知节点";
@@ -57,6 +63,7 @@ function statusClass(status) {
   const key = (status || "").toUpperCase();
   if (key === "FINISH") return "finish";
   if (key === "ERROR") return "error";
+  if (key === "CANCEL") return "cancel";
   return "start";
 }
 

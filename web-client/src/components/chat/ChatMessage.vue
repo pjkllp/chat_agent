@@ -14,11 +14,11 @@
           <template v-if="step.status === 'start'">⟳</template>
           <template v-else-if="step.status === 'finish'">✓</template>
           <template v-else-if="step.status === 'error'">✗</template>
+          <template v-else-if="step.status === 'cancel'">⊘</template>
+          <template v-else>·</template>
         </span>
         <span class="thinking-step-name">{{ step.node }}</span>
-        <span class="thinking-step-label">
-          {{ step.status === 'start' ? '处理中...' : step.status === 'finish' ? '完成' : '失败' }}
-        </span>
+        <span class="thinking-step-label">{{ stepLabel(step.status) }}</span>
       </div>
       <div v-if="msg.streaming" class="thinking-loading">...</div>
     </div>
@@ -36,14 +36,38 @@
       <template v-if="msg.content">{{ msg.content }}</template>
       <template v-else-if="msg.streaming"><span class="streaming-cursor">▍</span></template>
     </div>
+    <div v-if="msg.cancelled && !msg.streaming" class="msg-cancelled">已停止生成</div>
   </div>
 </template>
 
 <script setup>
 defineProps({ msg: { type: Object, required: true } });
+
+// 后端节点状态：start/finish/error/cancel 是节点生命周期，hit/progress/done 是过程性事件
+const STATUS_TEXT = {
+  start: "处理中...",
+  finish: "完成",
+  error: "失败",
+  cancel: "已取消",
+  done: "完成",
+  hit: "命中",
+  progress: "进行中",
+};
+
+function stepLabel(status) {
+  return STATUS_TEXT[status] || status || "";
+}
 </script>
 
 <style scoped>
+.msg-cancelled {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
 .msg-attach-image {
   display: block;
   max-width: 220px;

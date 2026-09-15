@@ -19,4 +19,7 @@ public interface AgentTraceService {
     TraceDetailVO getTraceDetail(String conversationId);
 
     TraceStatsVO getTraceStats();
+
+    void recordCancel(String conversationId, Long userId, Long messageId, String node, String safeMessage);
+
 }

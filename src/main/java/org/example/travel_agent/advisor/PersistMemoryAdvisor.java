@@ -1,6 +1,7 @@
 package org.example.travel_agent.advisor;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.travel_agent.dao.entity.AiChatMemoryEntity;
 import org.example.travel_agent.common.MessageConvertUtil;
 import org.example.travel_agent.memory.LLMMemory;
@@ -23,7 +24,9 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+@Slf4j
 @Component("persistMemoryAdvisor")
 @RequiredArgsConstructor
 public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
@@ -73,8 +76,8 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
         }
 
         ChatClientRequest requestWithHistory = appendHistoryToRequest(chatClientRequest,userId,conversationId);
-        List<UserMessage> userMessages = requestWithHistory.prompt().getUserMessages();
         StringBuilder assistantBuffer = new StringBuilder();
+        AtomicBoolean persisted = new AtomicBoolean(false);
 
         return streamAdvisorChain.nextStream(requestWithHistory)
                 .doOnNext(response -> {
@@ -86,9 +89,16 @@ public class PersistMemoryAdvisor implements CallAdvisor, StreamAdvisor {
                         }
                     }
                 })
-                .doOnComplete(() -> {
-                    ArrayList<Message> messages = new ArrayList<>();
-                    messages.addAll(userMessages);
+                // doOnComplete 只在正常完成时触发，用户点停止（CancelException 让流变成 onError）
+                // 或模型报错时整轮都不会落库，用户提问会从历史里凭空消失。
+                // doFinally 在 complete/error/cancel 下都执行，CAS 保证只落一次。
+                .doFinally(signal -> {
+                    if (!persisted.compareAndSet(false, true)) {
+                        return;
+                    }
+                    // 取 chatClientRequest 而非 requestWithHistory：后者被前置了历史，
+                    // 用它会把历史里的用户消息重复写一遍。
+                    ArrayList<Message> messages = new ArrayList<>(chatClientRequest.prompt().getUserMessages());
                     if (!assistantBuffer.isEmpty()) {
                         messages.add(new AssistantMessage(assistantBuffer.toString()));
                     }

@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.travel_agent.Exceptions.CancelException;
 import org.example.travel_agent.common.SseEventUtil;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.core.io.ClassPathResource;
@@ -21,6 +22,12 @@ public class summary_node implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
         try {
+            if (sseEventUtil.isCancelled(state)) {
+                log.info("summary_node canceled");
+                sseEventUtil.sendNodeStatus(state, "summary_node", "cancel", "用户取消了本轮对话");
+                throw new CancelException("用户取消了本轮对话");
+            }
+
             sseEventUtil.sendNodeStatus(state, "summary_node", "start", "开始汇总工具结果");
 
             String rewriteQuestion = state.value("rewrite_question", "");
@@ -47,6 +54,9 @@ public class summary_node implements NodeAction {
             log.info(summaryInput);
             sseEventUtil.sendNodeStatus(state, "summary_node", "finish", "结果汇总完成");
             return Map.of("summary_prompt",summaryInput);
+        } catch (CancelException e) {
+            // 取消 trace 已在节点内落库，不再按系统错误记一条
+            throw e;
         } catch (Exception e) {
             log.error("summary_node failed", e);
             sseEventUtil.markNodeError(state, "summary_node", e);

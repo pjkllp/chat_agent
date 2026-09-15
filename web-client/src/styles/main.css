@@ -1090,6 +1090,12 @@ body.theme-dark .btn-new-chat:hover {
   color: var(--danger);
 }
 
+.thinking-step.cancel {
+  color: var(--text-faint);
+  text-decoration: line-through;
+  text-decoration-color: var(--border-strong);
+}
+
 .thinking-step-icon {
   flex-shrink: 0;
   width: 14px;
@@ -1280,6 +1286,45 @@ body.theme-dark .btn-new-chat:hover {
 .btn-send:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* 流式生成期间，发送键的位置换成停止键 */
+.btn-stop {
+  margin-left: auto;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.16s, border-color 0.16s, color 0.16s, transform 0.16s var(--ease);
+}
+
+.btn-stop svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.btn-stop:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+  transform: translateY(-1px);
+}
+
+.btn-stop:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-stop:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 .composer-hint {

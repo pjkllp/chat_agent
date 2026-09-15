@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.travel_agent.Exceptions.CancelException;
 import org.example.travel_agent.common.SseEventUtil;
 import org.example.travel_agent.dto.BaiduSearchResult;
 import org.example.travel_agent.service.impl.BaiduSearchService;
@@ -30,6 +31,12 @@ public class search_node implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
         try {
+            if (sseEventUtil.isCancelled(state)) {
+                log.info("search_node canceled");
+                sseEventUtil.sendNodeStatus(state, "search_node", "cancel", "用户取消了本轮对话");
+                throw new CancelException("用户取消了本轮对话");
+            }
+
             long startMs = System.currentTimeMillis();
             sseEventUtil.sendNodeStatus(state, "search_node", "start", "开始调用搜索能力");
 
@@ -69,6 +76,9 @@ public class search_node implements NodeAction {
                     "百度搜索完成，命中 " + results.size() + " 条，耗时 " + costMs + "ms"
             );
             return Map.of("search_context", searchContext, "search_matches", matches);
+        } catch (CancelException e) {
+            // 取消 trace 已在节点内落库，不再按系统错误记一条
+            throw e;
         } catch (Exception e) {
             log.error("search_node failed", e);
             sseEventUtil.markNodeError(state, "search_node", e);

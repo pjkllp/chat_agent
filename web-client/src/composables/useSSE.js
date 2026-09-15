@@ -4,7 +4,7 @@ export function useSSE() {
   let controller = null;
 
   function connect(url, body, handlers = {}) {
-    const { onWorkflow, onAnswer, onMessage, onError, onComplete } = handlers;
+    const { onWorkflow, onAnswer, onMessage, onTurn, onError, onComplete } = handlers;
     controller = new AbortController();
     const token = getToken();
 
@@ -35,7 +35,7 @@ export function useSSE() {
 
         for (const block of blocks) {
           if (!block.trim()) continue;
-          parseSSEBlock(block, { onWorkflow, onAnswer, onMessage });
+          parseSSEBlock(block, { onWorkflow, onAnswer, onMessage, onTurn });
         }
       }
       onComplete?.();
@@ -55,7 +55,7 @@ export function useSSE() {
   return { connect, abort };
 }
 
-function parseSSEBlock(block, { onWorkflow, onAnswer, onMessage }) {
+function parseSSEBlock(block, { onWorkflow, onAnswer, onMessage, onTurn }) {
   const lines = block.split(/\r?\n/);
   let event = "message";
   const dataParts = [];
@@ -78,6 +78,11 @@ function parseSSEBlock(block, { onWorkflow, onAnswer, onMessage }) {
     try {
       const parsed = JSON.parse(data);
       onWorkflow?.(parsed);
+    } catch { /* skip unparseable */ }
+  } else if (event === "turn") {
+    try {
+      const parsed = JSON.parse(data);
+      onTurn?.(parsed);
     } catch { /* skip unparseable */ }
   } else if (event === "answer") {
     onAnswer?.(data);

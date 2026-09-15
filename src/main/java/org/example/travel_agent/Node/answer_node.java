@@ -5,6 +5,7 @@ import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.travel_agent.Exceptions.CancelException;
 import org.example.travel_agent.advisor.PersistMemoryAdvisor;
 import org.example.travel_agent.common.SseEventUtil;
 import org.example.travel_agent.dto.ChatAttachmentDTO;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,6 +90,16 @@ public class answer_node implements NodeAction {
                     .content()
                     .doOnNext(data -> {
                         hasStreamChunk.set(true);
+                        // 取消必须抛在 ClientDisconnectedException 包装之外，否则会被当成客户端断开吞掉
+                        if (sseEventUtil.isCancelled(state)) {
+                            log.info("answer_node canceled for conversationId={}", conversationId);
+                            try {
+                                sseEventUtil.sendNodeStatus(state, "answer_node", "cancel", "用户取消了本轮对话");
+                            } catch (IOException e) {
+                                log.warn("answer_node send cancel status failed", e);
+                            }
+                            throw new CancelException("用户取消了本轮对话");
+                        }
                         try {
                             sseEventUtil.sendAnswerChunk(state, data);
                         } catch (Exception e) {
@@ -114,6 +126,12 @@ public class answer_node implements NodeAction {
                     fallbackSpec.options(DashScopeChatOptions.builder().model(visionModel).temperature(0.1).multiModel(true).build());
                 }
                 String fullAnswer = fallbackSpec.call().content();
+                // 兜底调用是阻塞的，取消可能在它返回前就发生了，这里补一次检查
+                if (sseEventUtil.isCancelled(state)) {
+                    log.info("answer_node canceled after fallback call, conversationId={}", conversationId);
+                    sseEventUtil.sendNodeStatus(state, "answer_node", "cancel", "用户取消了本轮对话");
+                    throw new CancelException("用户取消了本轮对话");
+                }
                 if (fullAnswer != null && !fullAnswer.isBlank()) {
                     sseEventUtil.sendAnswerChunk(state, fullAnswer);
                 }
@@ -121,6 +139,10 @@ public class answer_node implements NodeAction {
 
             sseEventUtil.sendNodeStatus(state, "answer_node", "finish", "最终答案已生成");
             sseEventUtil.sendNodeStatus(state, "answer_node", "done", "工作流执行完成");
+            return Map.of();
+        } catch (CancelException e) {
+            // 用户主动取消：cancel trace 已在节点内落库，不记 error，直接结束本轮
+            log.info("answer_node canceled, stop streaming gracefully");
             return Map.of();
         } catch (Exception e) {
             if (isClientDisconnected(e)) {

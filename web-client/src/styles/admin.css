@@ -351,6 +351,12 @@ body.theme-dark .menu-item.active {
   border-color: color-mix(in srgb, var(--danger) 32%, transparent);
 }
 
+.status-badge.cancel {
+  color: var(--text-muted);
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
+}
+
 /* --------------------------------------------------------------------------
    表单
    -------------------------------------------------------------------------- */
@@ -449,6 +455,10 @@ body.theme-dark .menu-item.active {
 
 .trace-step-marker.error {
   background: var(--danger);
+}
+
+.trace-step-marker.cancel {
+  background: var(--text-faint);
 }
 
 .trace-step-content {

@@ -5,6 +5,7 @@ import com.alibaba.cloud.ai.graph.action.NodeAction;
 import cn.hutool.core.util.StrUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.travel_agent.Exceptions.CancelException;
 import org.example.travel_agent.advisor.ContextMemoryAdvisor;
 import org.example.travel_agent.common.SseEventUtil;
 import org.springframework.ai.chat.client.ChatClient;
@@ -27,6 +28,7 @@ public class rewrite_node implements NodeAction {
     @Override
     public Map<String, Object> apply(OverAllState state) throws Exception {
         try {
+
             ClassPathResource classPathResource = new ClassPathResource("prompt/rewrite.st");
 
             String originalQuestion = state.value("original_question", "");
@@ -38,6 +40,12 @@ public class rewrite_node implements NodeAction {
             sseEventUtil.sendNodeStatus(state, "rewrite_node", "start", "开始改写用户问题");
 
             String conversationId = state.value("conversationId", "");
+
+            if (sseEventUtil.isCancelled(state)) {
+                log.info("用户取消了请求，conversationId:{}", conversationId);
+                sseEventUtil.sendNodeStatus(state, "rewrite_node", "cancel", "用户取消了本轮对话");
+                throw new CancelException("用户取消了本轮对话");
+            }
 
             String rewriteQuestion = deepThinkChatClient.prompt()
                     .system(classPathResource)
@@ -55,6 +63,9 @@ public class rewrite_node implements NodeAction {
             sseEventUtil.sendNodeStatus(state, "rewrite_node", "finish", "问题改写完成");
 
             return Map.of("rewrite_question",rewriteQuestion);
+        } catch (CancelException e) {
+            // 取消 trace 已在节点内落库，不再按系统错误记一条
+            throw e;
         } catch (Exception e) {
             log.error("rewrite_node failed", e);
             sseEventUtil.markNodeError(state, "rewrite_node", e);

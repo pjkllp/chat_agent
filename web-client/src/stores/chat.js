@@ -4,6 +4,7 @@ import {
   fetchConversations as apiConversations,
   fetchMessages as apiMessages,
   deleteConversation as apiDelete,
+  cancelChat as apiCancel,
 } from "../services/chat";
 
 export const useChatStore = defineStore("chat", {
@@ -15,6 +16,9 @@ export const useChatStore = defineStore("chat", {
     currentPage: 1,
     hasMore: false,
     streaming: false,
+    cancelling: false,
+    // 本轮对话的 messageId，由服务端 turn 事件下发；取消接口靠它定位要中止的轮次
+    currentMessageId: null,
     workflowSteps: [],
     title: "新对话",
   }),
@@ -27,6 +31,8 @@ export const useChatStore = defineStore("chat", {
       this.messages = [];
       this.workflowSteps = [];
       this.streaming = false;
+      this.cancelling = false;
+      this.currentMessageId = null;
       this.title = "新对话";
     },
     async loadConversations(page = 1, before) {
@@ -66,6 +72,8 @@ export const useChatStore = defineStore("chat", {
     sendQuestion(question, deepThink, attachments = []) {
       if (this.streaming) return;
       this.streaming = true;
+      this.cancelling = false;
+      this.currentMessageId = null;
       this.messages.push({ role: "user", content: question, attachments });
       this.messages.push({ role: "assistant", content: "", streaming: true, thinkingSteps: [] });
       this.workflowSteps = [];
@@ -80,6 +88,10 @@ export const useChatStore = defineStore("chat", {
         "/api/chat/chat",
         { question, conversationId: convId, isDeepThink: deepThink ? 1 : 0, attachments },
         {
+          onTurn: (data) => {
+            // 服务端在本轮开始时下发 messageId，取消接口需要它
+            this.currentMessageId = data?.messageId ?? null;
+          },
           onMessage: (data) => {
             // Non-deepThink path: plain text chunks from simple chat
             const last = this.messages[this.messages.length - 1];
@@ -103,21 +115,36 @@ export const useChatStore = defineStore("chat", {
           },
           onError: () => {
             this.streaming = false;
+            this.cancelling = false;
             const last = this.messages[this.messages.length - 1];
             if (last) last.streaming = false;
           },
           onComplete: () => {
             this.streaming = false;
+            this.cancelling = false;
             const last = this.messages[this.messages.length - 1];
             if (last) last.streaming = false;
           },
         }
       );
     },
-    cancelStream() {
-      this.streaming = false;
+    /**
+     * 中止本轮对话。只打取消标记，不主动断开 SSE：
+     * 让服务端在下一个检查点停下并把收尾事件发完，前端状态由 onComplete 统一回收。
+     */
+    async cancelCurrent() {
+      const messageId = this.currentMessageId;
+      if (!this.streaming || this.cancelling || messageId == null) return;
+      this.cancelling = true;
       const last = this.messages[this.messages.length - 1];
-      if (last) last.streaming = false;
+      if (last && last.role === "assistant") last.cancelled = true;
+      try {
+        await apiCancel(messageId);
+      } catch {
+        // 本轮可能刚好已经结束，取消失败不该阻塞界面
+        this.cancelling = false;
+        if (last) last.cancelled = false;
+      }
     },
   },
 });
